@@ -232,3 +232,40 @@ Phase 5 (Scar Tissue: Extract lessons, cluster, confidence score, FTS5 + embeddi
 
 ### Next Step
 Phase 6 (Fusion: Memory × Verification — slice 2, briefing generation, PR diff constraint check integration, and memory ablation benchmark).
+
+---
+
+## [Phase 6] — Fusion: Memory × Verification (Slice 2)
+
+### What Was Built
+- **Pre-Coding Briefing Generator (`apps/api/receipt_api/scar/briefing.py`)**:
+  - `generate_scar_briefing`: Provides coding agents with top-K relevant constraints, an imperative preflight checklist, and suggested test names tailored to touched files and tasks within a compact token budget.
+- **Verification Pipeline Fusion (`apps/api/receipt_api/verify/pipeline.py`)**:
+  - Integrated `constraints` step into `VerificationPipeline`:
+    1. Inspects git diff (`base_sha..head_sha`) and modified code files.
+    2. Runs AST static checks and pattern detectors.
+    3. Correlates violations to active learned Scar constraints.
+    4. Emits `run.constraint` events per constraint.
+    5. Applies constraint score formula: `1.0 - weighted_penalties`.
+    6. Enforces hard gates: blocking violations cap score at $\le 69$ and verdict at `NEEDS_REVIEW` or `REJECTED`.
+- **Ablation Benchmark (`scripts/ablate_memory.py`)**:
+  - Compares verification outcomes across subtle bug vs. correct PR branches with and without Scar Tissue.
+  - Generates empirical comparison table highlighting caught violations.
+- **REST Endpoints (`apps/api/receipt_api/main.py`)**:
+  - Connected `POST /repos/{id}/briefing` and `POST /repos/{id}/check-diff` to live search and AST checkers.
+
+### Verification & Measured Results
+- `pytest tests/test_fusion.py`: 3/3 passed in 18.39s.
+  - Briefing generation: extracts constraints and checklist for checkout tasks.
+  - Briefing API: `POST /repos/{id}/briefing` returns 200 with structured response.
+  - Verification hard gate: subtle bug branch correctly fails with score $\le 69$ (`NEEDS_REVIEW`); correct branch achieves `VERIFIED` with constraints score 1.0.
+- `python -m scripts.ablate_memory`:
+  - `agent/coupons-subtle-bug` Without Memory: **VERIFIED (False Positive, 91/100)**.
+  - `agent/coupons-subtle-bug` With Memory: **NEEDS_REVIEW (Score 48/100, Violations: 2)**.
+    - `[float-arithmetic-on-money]`
+    - `[missing-idempotency-key]`
+  - `agent/coupons-correct` With Memory: **VERIFIED (Score 94/100, Violations: 0)**.
+- Full suite: `pytest tests/`: **45/45 passed in 68.47s**.
+
+### Next Step
+Phase 7 (Mutation Testing on Changed Lines + Browser QA).

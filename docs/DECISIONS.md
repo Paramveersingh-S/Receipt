@@ -108,3 +108,23 @@ Implement the Scar Tissue subsystem (`apps/api/receipt_api/scar/`):
 - Achieves 100% recall on planted lessons with 0% false positive junk constraints.
 - Enables sub-millisecond retrieval of applicable constraints during agent briefing and diff check.
 - Prevents hallucinated evidence while grounding all agent constraints in real git history.
+
+---
+
+## ADR 007: Memory-Verification Fusion & Blocking Constraint Hard Gates
+
+### Context
+When coding agents generate automated PRs, unit tests written by the agent often pass because the agent wrote both the implementation and the tests to match its own assumptions. Subtle domain bugs (e.g., float rounding drift on checkout, missing idempotency keys during network retries) evade standard unit tests and cause severe production incidents.
+
+### Decision
+Implement **Fusion: Memory × Verification** in `verify/pipeline.py` and `scar/briefing.py`:
+1. **Pre-Coding Briefings (`scar/briefing.py`)**: Provide agents with active repository constraints, preflight checklists, and suggested tests scoped to the target files *before* code is authored.
+2. **Automated Diff & AST Checking**: During verification pipeline execution, inspect all altered files and unified diffs against learned constraints using the AST checker library.
+3. **Hard Gate Enforcement**: Any violation of a `block` severity constraint immediately triggers a hard gate cap:
+   - Score is capped at $\le 69$.
+   - Verdict is capped at `NEEDS_REVIEW` or `REJECTED`.
+   - The receipt explicitly lists the violated constraint with direct evidence links to the historical PRs, reverts, and incident tickets that taught the lesson.
+
+### Consequences
+- Eliminates false-positive test approvals on subtly broken agent PRs.
+- Grounded in empirical ablation: `agent/coupons-subtle-bug` drops from `VERIFIED (False Positive, 91)` to `NEEDS_REVIEW (Score 48)` citing PR #7 and PR #8 / #11.

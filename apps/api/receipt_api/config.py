@@ -1,7 +1,11 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import List, Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent.parent
+CONTRACTS_DIR = ROOT_DIR / "contracts"
 
 
 class Settings(BaseSettings):

@@ -31,3 +31,6 @@ demo-smoke:
 
 scar-eval-quick:
 	$(PYTHON) -m scripts.scar_eval_quick
+
+ablate-memory:
+	$(PYTHON) -m scripts.ablate_memory

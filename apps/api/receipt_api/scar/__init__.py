@@ -1,3 +1,4 @@
+from receipt_api.scar.briefing import generate_scar_briefing
 from receipt_api.scar.checks import (
     Violation,
     run_static_checks_on_code,
@@ -12,6 +13,7 @@ from receipt_api.scar.store import get_constraint, list_constraints, save_constr
 
 __all__ = [
     "Violation",
+    "generate_scar_briefing",
     "run_static_checks_on_code",
     "run_static_checks_on_diff",
     "run_static_checks_on_file",

@@ -1,4 +1,6 @@
+import datetime
 import json
+import subprocess
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -6,10 +8,13 @@ from typing import Any, Optional
 import structlog
 from sqlmodel import Session, select
 
+from receipt_api.config import CONTRACTS_DIR
 from receipt_api.db import get_engine
 from receipt_api.events import emit_event
-from receipt_api.models import DBReceipt, DBRun, DBRunStep
-from receipt_api.schemas import Receipt
+from receipt_api.models import DBReceipt, DBRun, DBRunStep, Repo
+from receipt_api.scar.checks import run_static_checks_on_diff, run_static_checks_on_file
+from receipt_api.scar.store import list_constraints
+from receipt_api.schemas import ConstraintSchema, Receipt
 from receipt_api.verify.failbefore import ProofItem, evaluate_fail_before_proof
 from receipt_api.verify.intent import AcceptanceCriterion, extract_intent
 from receipt_api.verify.receipt import build_receipt, format_receipt_markdown
@@ -134,7 +139,91 @@ class VerificationPipeline:
 
         self._record_step_finish("testgen", {"proofs_generated": len(proof_items)}, session)
 
-        # 3. Step: Existing Test Suite Regression Check
+        # 3. Step: Scar Tissue Constraints Check
+        self._record_step_start("constraints", session)
+        constraint_results: list[dict[str, Any]] = []
+        has_blocking_violations = False
+        constraint_penalty = 0.0
+
+        diff_text = self._get_diff()
+        violations = run_static_checks_on_diff(diff_text) if diff_text else []
+
+        # Also run static checks on python files in repo
+        for py_file in self.repo_path.glob("**/*.py"):
+            if "receipt_tests" in str(py_file) or ".venv" in str(py_file) or "tests" in str(py_file):
+                continue
+            file_violations = run_static_checks_on_file(py_file)
+            violations.extend(file_violations)
+
+        unique_violations = {}
+        for v in violations:
+            key = (v.check_id, v.file, v.line)
+            if key not in unique_violations:
+                unique_violations[key] = v
+        violations = list(unique_violations.values())
+
+        constraints_to_check: list[ConstraintSchema] = []
+        if session:
+            repo_rec = session.exec(
+                select(Repo).where((Repo.full_name == self.repo_name) | (Repo.id == self.repo_name))
+            ).first()
+            repo_id = repo_rec.id if repo_rec else self.repo_name
+            constraints_to_check = list_constraints(repo_id, session=session, status="active")
+
+        if not constraints_to_check:
+            fixture_path = CONTRACTS_DIR / "fixtures" / "constraints.list.json"
+            if fixture_path.exists():
+                with open(fixture_path, "r", encoding="utf-8") as f:
+                    constraints_to_check = [ConstraintSchema(**c) for c in json.load(f)[:7]]
+
+        for c in constraints_to_check:
+            matched_violation = None
+            c_pattern = c.check.spec.get("pattern", "")
+            for v in violations:
+                if v.check_id == c_pattern or v.check_id.replace("-", "_") in c.id or c.id in v.check_id:
+                    matched_violation = v
+                    break
+                # Match by title keyword
+                if any(term in v.message.lower() for term in c.title.lower().split()[:2]):
+                    matched_violation = v
+                    break
+
+            if matched_violation:
+                res = "FAIL"
+                if c.severity == "block":
+                    has_blocking_violations = True
+                    constraint_penalty += 1.0
+                elif c.severity == "warn":
+                    constraint_penalty += 0.35
+                else:
+                    constraint_penalty += 0.10
+            else:
+                res = "PASS"
+
+            c_res = {
+                "constraint_id": c.id,
+                "title": c.title,
+                "severity": c.severity,
+                "result": res,
+                "evidence": [ev.model_dump() for ev in c.evidence],
+            }
+            constraint_results.append(c_res)
+            emit_event(
+                run_id=self.run_id,
+                event_type="run.constraint",
+                payload=c_res,
+                session=session,
+            )
+
+        constraints_score = max(0.0, round(1.0 - constraint_penalty, 2))
+        failed_constraints_count = len([c for c in constraint_results if c["result"] == "FAIL"])
+        self._record_step_finish(
+            "constraints",
+            {"total": len(constraint_results), "violations": failed_constraints_count},
+            session,
+        )
+
+        # 4. Step: Existing Test Suite Regression Check
         self._record_step_start("suite", session)
         head_run = run_in_sandbox(repo_path=self.repo_path, stack=stack, config=self.config)
         passed_count = sum(1 for t in head_run.test_results if t.status == TestStatus.PASS)
@@ -143,7 +232,7 @@ class VerificationPipeline:
         suite_base = {"passed": passed_count, "failed": 0}  # Baseline assumed passing
         self._record_step_finish("suite", suite_head, session)
 
-        # 4. Step: Scoring
+        # 5. Step: Scoring
         self._record_step_start("scoring", session)
         non_vacuous_proofs = [p for p in proof_items if not p.vacuous]
         for p in proof_items:
@@ -160,12 +249,12 @@ class VerificationPipeline:
 
         score_res = calculate_score(
             behavior=behavior_score,
-            constraints=1.0,  # Full constraints in Phase 6
+            constraints=constraints_score,
             test_strength=1.0,  # AST mutation in Phase 7
             regression=1.0 if not has_regressions else 0.0,
             browser=None,
             has_regressions=has_regressions,
-            has_blocking_violations=False,
+            has_blocking_violations=has_blocking_violations,
             has_non_vacuous_proofs=len(non_vacuous_proofs) > 0 if proof_items else True,
             is_bugfix=is_bugfix,
         )
@@ -175,7 +264,7 @@ class VerificationPipeline:
 
         self._record_step_finish("scoring", {"score": score_res.score, "verdict": score_res.verdict}, session)
 
-        # 5. Finalize Receipt
+        # 6. Finalize Receipt
         proofs_dicts = [p.model_dump() for p in proof_items]
         intent_dicts = [c.model_dump() for c in criteria]
         score_breakdown_dict = {
@@ -193,7 +282,7 @@ class VerificationPipeline:
             proofs=proofs_dicts,
             suite={"base": suite_base, "head": suite_head, "regressions": regressions},
             mutation={"mutants": 0, "killed": 0, "survived": 0, "timeout": 0, "score": 1.0, "survivors": []},
-            constraints=[],
+            constraints=constraint_results,
             browser={"applicable": False, "checks": []},
             score_breakdown=score_breakdown_dict,
             limits=limits,
@@ -216,6 +305,22 @@ class VerificationPipeline:
             payload={"name": step_name, "state": "completed", "summary": summary},
             session=session,
         )
+
+    def _get_diff(self) -> str:
+        """Attempt to extract git diff between base_sha and head_sha."""
+        try:
+            res = subprocess.run(
+                ["git", "diff", f"{self.base_sha}..{self.head_sha}"],
+                cwd=str(self.repo_path),
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if res.returncode == 0 and res.stdout.strip():
+                return res.stdout
+        except Exception:
+            pass
+        return ""
 
     def _finalize_receipt(
         self,
