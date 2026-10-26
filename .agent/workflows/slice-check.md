@@ -1,0 +1,1 @@
+Run the end-to-end smoke: `make demo-smoke`. It must: start API, trigger a verification run on the demo PR fixture, stream events, produce a receipt JSON that validates against contracts, and print the verdict. Report pass/fail with real output and fix what fails.

@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+
+# Testing & Linting
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Databases & local state
+*.db
+*.sqlite
+*.sqlite3
+data/
+*.log
+
+# Environment & Secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Node / Web
+node_modules/
+.next/
+out/
+dist/
+.turbo/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Receipt artifacts
+receipt_tests/
+tmp/
+video/
+*.mp4

@@ -1,0 +1,24 @@
+{"seq":1,"type":"run.started","at":"2026-10-26T12:00:00Z","payload":{"run_id":"run_001","pr_number":12,"base_sha":"a1b2c3","head_sha":"d4e5f6"}}
+{"seq":2,"type":"run.step.started","at":"2026-10-26T12:00:01Z","payload":{"name":"intent_extraction"}}
+{"seq":3,"type":"run.log","at":"2026-10-26T12:00:02Z","payload":{"stream":"stdout","line":"Analyzing PR #12 diff and description for acceptance criteria..."}}
+{"seq":4,"type":"run.step.finished","at":"2026-10-26T12:00:04Z","payload":{"name":"intent_extraction","state":"passed","summary":{"criteria_count":3}}}
+{"seq":5,"type":"run.step.started","at":"2026-10-26T12:00:05Z","payload":{"name":"briefing_diff"}}
+{"seq":6,"type":"run.constraint","at":"2026-10-26T12:00:06Z","payload":{"constraint_id":"sc_001","title":"Money is integer cents, never float","severity":"block","result":"PASS"}}
+{"seq":7,"type":"run.constraint","at":"2026-10-26T12:00:07Z","payload":{"constraint_id":"sc_002","title":"Payment retry calls require unique idempotency key","severity":"block","result":"PASS"}}
+{"seq":8,"type":"run.step.finished","at":"2026-10-26T12:00:08Z","payload":{"name":"briefing_diff","state":"passed","summary":{"active_constraints":2}}}
+{"seq":9,"type":"run.step.started","at":"2026-10-26T12:00:09Z","payload":{"name":"test_generation"}}
+{"seq":10,"type":"run.log","at":"2026-10-26T12:00:11Z","payload":{"stream":"stdout","line":"Synthesizing fail-before/pass-after test oracle for AC #1 (coupon rounding)..."}}
+{"seq":11,"type":"run.step.finished","at":"2026-10-26T12:00:13Z","payload":{"name":"test_generation","state":"passed","summary":{"tests_generated":3}}}
+{"seq":12,"type":"run.step.started","at":"2026-10-26T12:00:14Z","payload":{"name":"fail_before_pass_after"}}
+{"seq":13,"type":"run.log","at":"2026-10-26T12:00:16Z","payload":{"stream":"stdout","line":"Running generated tests on base commit a1b2c3 (expecting failures)..."}}
+{"seq":14,"type":"run.proof","at":"2026-10-26T12:00:18Z","payload":{"criterion_id":"ac1","test_name":"test_coupon_rounds_half_up","base":"FAIL","head":"PASS","vacuous":false}}
+{"seq":15,"type":"run.proof","at":"2026-10-26T12:00:19Z","payload":{"criterion_id":"ac2","test_name":"test_expired_coupon_returns_400","base":"FAIL","head":"PASS","vacuous":false}}
+{"seq":16,"type":"run.step.finished","at":"2026-10-26T12:00:20Z","payload":{"name":"fail_before_pass_after","state":"passed","summary":{"proofs_verified":3}}}
+{"seq":17,"type":"run.step.started","at":"2026-10-26T12:00:21Z","payload":{"name":"mutation_testing"}}
+{"seq":18,"type":"run.mutation.tick","at":"2026-10-26T12:00:23Z","payload":{"killed":12,"survived":1,"total":36}}
+{"seq":19,"type":"run.mutation.tick","at":"2026-10-26T12:00:25Z","payload":{"killed":24,"survived":2,"total":36}}
+{"seq":20,"type":"run.mutation.tick","at":"2026-10-26T12:00:27Z","payload":{"killed":32,"survived":4,"total":36}}
+{"seq":21,"type":"run.step.finished","at":"2026-10-26T12:00:28Z","payload":{"name":"mutation_testing","state":"passed","summary":{"score":0.89,"killed":32,"survived":4}}}
+{"seq":22,"type":"run.score","at":"2026-10-26T12:00:29Z","payload":{"score":92,"breakdown":{"behavior":1.0,"constraints":1.0,"test_strength":0.89,"regression":1.0,"browser":1.0}}}
+{"seq":23,"type":"run.artifact","at":"2026-10-26T12:00:29Z","payload":{"id":"ar_proof_1","kind":"test","url":"/artifacts/ar_proof_1"}}
+{"seq":24,"type":"run.finished","at":"2026-10-26T12:00:30Z","payload":{"verdict":"VERIFIED","receipt_id":"rc_01JJ88F4R00000000000000001","receipt_slug":"x7k2m9","score":92}}

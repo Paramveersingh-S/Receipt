@@ -1,0 +1,10 @@
+{"seq":1,"type":"ingest.progress","at":"2026-10-26T12:00:01Z","payload":{"phase":"fetching_prs","done":10,"total":100,"note":"Fetching PR metadata from GitHub"}}
+{"seq":2,"type":"ingest.progress","at":"2026-10-26T12:00:03Z","payload":{"phase":"fetching_prs","done":50,"total":100,"note":"Fetching PR discussions and diffs"}}
+{"seq":3,"type":"ingest.progress","at":"2026-10-26T12:00:05Z","payload":{"phase":"fetching_prs","done":100,"total":100,"note":"PR metadata ingestion complete"}}
+{"seq":4,"type":"ingest.progress","at":"2026-10-26T12:00:06Z","payload":{"phase":"extracting_lessons","done":5,"total":35,"note":"Mining review threads and reverts"}}
+{"seq":5,"type":"scar.found","at":"2026-10-26T12:00:08Z","payload":{"constraint":{"id":"sc_001","title":"Money is integer cents, never float","severity":"block","confidence":0.96}}}
+{"seq":6,"type":"scar.found","at":"2026-10-26T12:00:10Z","payload":{"constraint":{"id":"sc_002","title":"Payment retry calls require unique idempotency key","severity":"block","confidence":0.94}}}
+{"seq":7,"type":"scar.found","at":"2026-10-26T12:00:12Z","payload":{"constraint":{"id":"sc_003","title":"Do not swallow bare Exception around payment calls","severity":"block","confidence":0.91}}}
+{"seq":8,"type":"scar.found","at":"2026-10-26T12:00:14Z","payload":{"constraint":{"id":"sc_004","title":"Database queries inside loops (N+1) are forbidden","severity":"block","confidence":0.95}}}
+{"seq":9,"type":"scar.found","at":"2026-10-26T12:00:16Z","payload":{"constraint":{"id":"sc_005","title":"All new API endpoints require authentication dependency","severity":"block","confidence":0.98}}}
+{"seq":10,"type":"ingest.progress","at":"2026-10-26T12:00:18Z","payload":{"phase":"completed","done":100,"total":100,"note":"Ingestion and Scar Tissue memory synthesis complete"}}

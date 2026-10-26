@@ -1,0 +1,92 @@
+{
+  "id": "rc_01JJ88F4R00000000000000003",
+  "slug": "k8w1v3",
+  "repo": "Paramveersingh-S/receipt-demo-shop",
+  "pr": {
+    "number": 14,
+    "title": "refactor: Optimize cart serialization structure",
+    "author": "agent/cursor",
+    "base_sha": "a1b2c3d4e5f6789012345678901234567890abcd",
+    "head_sha": "334455667788990011223344556677889900aabb",
+    "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/14"
+  },
+  "verdict": "NEEDS_REVIEW",
+  "score": 73,
+  "iterations": 1,
+  "duration_ms": 115000,
+  "intent": [
+    {
+      "id": "ac1",
+      "text": "Refactor cart schema to avoid duplicate items lookup",
+      "testable": true,
+      "kind": "refactor"
+    }
+  ],
+  "proofs": [
+    {
+      "criterion_id": "ac1",
+      "test_name": "test_cart_structure_preserves_behavior",
+      "base": "PASS",
+      "head": "PASS",
+      "vacuous": true,
+      "artifact_id": "ar_proof_vac"
+    }
+  ],
+  "suite": {
+    "base": { "passed": 41, "failed": 0 },
+    "head": { "passed": 41, "failed": 0 },
+    "regressions": []
+  },
+  "mutation": {
+    "mutants": 18,
+    "killed": 14,
+    "survived": 4,
+    "timeout": 0,
+    "score": 0.77,
+    "survivors": [
+      {
+        "file": "shop/cart.py",
+        "line": 85,
+        "op": "BRANCH_REMOVAL",
+        "diff": "-if cache_hit:\n+if True:"
+      }
+    ]
+  },
+  "constraints": [
+    {
+      "constraint_id": "sc_004",
+      "title": "Database queries inside loops (N+1) are forbidden; use joinload or batching",
+      "severity": "warn",
+      "result": "WARN",
+      "evidence": [
+        {
+          "type": "revert",
+          "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/4",
+          "sha": "44bb55c",
+          "excerpt": "Reverted N+1 query regression on catalog items retrieval in PR #3",
+          "at": "2026-07-20T14:10:00Z"
+        }
+      ]
+    }
+  ],
+  "browser": {
+    "applicable": false,
+    "checks": []
+  },
+  "repair_history": [],
+  "score_breakdown": {
+    "behavior": 0.5,
+    "constraints": 0.65,
+    "test_strength": 0.77,
+    "regression": 1.0,
+    "browser": 1.0
+  },
+  "limits": [
+    "Refactor: Proof test passed on base commit (vacuous for new behavior, counted for equivalence)",
+    "Warning constraint sc_004 detected: potential unbatched relation fetch"
+  ],
+  "artifacts": [
+    { "id": "ar_proof_vac", "kind": "test", "url": "/artifacts/ar_proof_vac" }
+  ],
+  "created_at": "2026-10-26T12:10:00Z"
+}

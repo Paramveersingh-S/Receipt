@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReceiptSSEEvent",
+  "type": "object",
+  "required": ["seq", "type", "at", "payload"],
+  "properties": {
+    "seq": {
+      "type": "integer",
+      "description": "Monotonically increasing sequence number for event stream replay"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "run.started",
+        "run.step.started",
+        "run.step.progress",
+        "run.step.finished",
+        "run.log",
+        "run.artifact",
+        "run.proof",
+        "run.mutation.tick",
+        "run.constraint",
+        "run.score",
+        "run.repair.started",
+        "run.finished",
+        "ingest.progress",
+        "scar.found"
+      ]
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payload": {
+      "type": "object"
+    }
+  }
+}

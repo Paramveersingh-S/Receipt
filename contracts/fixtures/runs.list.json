@@ -1,0 +1,41 @@
+[
+  {
+    "id": "run_001",
+    "pr_number": 12,
+    "title": "feat: Add coupon discount support at checkout",
+    "author": "agent/claude-code",
+    "state": "completed",
+    "verdict": "VERIFIED",
+    "score": 92,
+    "iterations": 2,
+    "started_at": "2026-10-26T11:57:38Z",
+    "finished_at": "2026-10-26T12:00:00Z",
+    "receipt_slug": "x7k2m9"
+  },
+  {
+    "id": "run_002",
+    "pr_number": 13,
+    "title": "feat: Add percentage coupon discounts",
+    "author": "agent/claude-code",
+    "state": "completed",
+    "verdict": "REJECTED",
+    "score": 44,
+    "iterations": 1,
+    "started_at": "2026-10-26T12:03:22Z",
+    "finished_at": "2026-10-26T12:05:00Z",
+    "receipt_slug": "m4p9q2"
+  },
+  {
+    "id": "run_003",
+    "pr_number": 14,
+    "title": "refactor: Optimize cart serialization structure",
+    "author": "agent/cursor",
+    "state": "completed",
+    "verdict": "NEEDS_REVIEW",
+    "score": 73,
+    "iterations": 1,
+    "started_at": "2026-10-26T12:08:05Z",
+    "finished_at": "2026-10-26T12:10:00Z",
+    "receipt_slug": "k8w1v3"
+  }
+]

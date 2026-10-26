@@ -1,0 +1,31 @@
+{
+  "nodes": [
+    { "id": "sc_001", "type": "constraint", "label": "Money is integer cents", "severity": "block", "confidence": 0.96 },
+    { "id": "sc_002", "type": "constraint", "label": "Payment idempotency key", "severity": "block", "confidence": 0.94 },
+    { "id": "sc_003", "type": "constraint", "label": "No bare except in payments", "severity": "block", "confidence": 0.91 },
+    { "id": "sc_004", "type": "constraint", "label": "N+1 query avoidance", "severity": "block", "confidence": 0.95 },
+    { "id": "sc_005", "type": "constraint", "label": "Endpoint auth dependency", "severity": "block", "confidence": 0.98 },
+    { "id": "f_pricing", "type": "file", "label": "shop/pricing.py", "language": "python" },
+    { "id": "f_checkout", "type": "file", "label": "shop/checkout.py", "language": "python" },
+    { "id": "f_payments", "type": "file", "label": "shop/payments.py", "language": "python" },
+    { "id": "f_catalog", "type": "file", "label": "shop/catalog.py", "language": "python" },
+    { "id": "pr_7", "type": "pr", "label": "PR #7 (Bug: float rounding)", "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/7" },
+    { "id": "pr_8", "type": "revert", "label": "PR #8 (Revert PR #7)", "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/8" },
+    { "id": "pr_11", "type": "pr", "label": "PR #11 (Idempotency fix)", "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/11" },
+    { "id": "inc_7", "type": "incident", "label": "Incident #7 (Double billing drift)", "date": "2026-08-14" },
+    { "id": "inc_10", "type": "incident", "label": "Incident #10 (Duplicate Stripe charge)", "date": "2026-08-25" }
+  ],
+  "edges": [
+    { "src": "sc_001", "dst": "f_pricing", "kind": "scopes_file", "weight": 1.0 },
+    { "src": "sc_001", "dst": "f_checkout", "kind": "scopes_file", "weight": 0.8 },
+    { "src": "sc_001", "dst": "pr_8", "kind": "extracted_from", "weight": 1.0 },
+    { "src": "sc_001", "dst": "inc_7", "kind": "prevents_incident", "weight": 1.0 },
+    { "src": "pr_8", "dst": "pr_7", "kind": "reverted", "weight": 1.0 },
+    { "src": "pr_7", "dst": "inc_7", "kind": "caused_by", "weight": 0.9 },
+    { "src": "sc_002", "dst": "f_payments", "kind": "scopes_file", "weight": 1.0 },
+    { "src": "sc_002", "dst": "pr_11", "kind": "extracted_from", "weight": 1.0 },
+    { "src": "sc_002", "dst": "inc_10", "kind": "prevents_incident", "weight": 1.0 },
+    { "src": "sc_003", "dst": "f_payments", "kind": "scopes_file", "weight": 0.9 },
+    { "src": "sc_004", "dst": "f_catalog", "kind": "scopes_file", "weight": 1.0 }
+  ]
+}

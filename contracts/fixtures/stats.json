@@ -1,0 +1,21 @@
+{
+  "repo": "Paramveersingh-S/receipt-demo-shop",
+  "active_constraints_count": 15,
+  "prevented_violations_count": 51,
+  "verified_runs_count": 28,
+  "rejected_runs_count": 9,
+  "repaired_runs_count": 14,
+  "average_verification_time_ms": 114200,
+  "mutation_score_average": 0.84,
+  "top_violated_constraints": [
+    { "id": "sc_005", "title": "All new API endpoints require authentication dependency", "violations_caught": 12 },
+    { "id": "sc_001", "title": "Money is integer cents, never float", "violations_caught": 9 },
+    { "id": "sc_006", "title": "Never log full credit card details or unredacted PII", "violations_caught": 7 },
+    { "id": "sc_004", "title": "Database queries inside loops (N+1) are forbidden", "violations_caught": 6 }
+  ],
+  "agent_leaderboard": [
+    { "author": "agent/claude-code", "runs": 18, "first_pass_verified_pct": 72.2, "repaired_pct": 88.8 },
+    { "author": "agent/cursor", "runs": 12, "first_pass_verified_pct": 66.7, "repaired_pct": 83.3 },
+    { "author": "agent/codex", "runs": 7, "first_pass_verified_pct": 57.1, "repaired_pct": 71.4 }
+  ]
+}

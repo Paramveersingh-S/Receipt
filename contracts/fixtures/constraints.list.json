@@ -1,0 +1,354 @@
+[
+  {
+    "id": "sc_001",
+    "title": "Money is integer cents, never float",
+    "rule": "Represent and compute all monetary amounts as integer cents; never use float arithmetic for prices, totals or discounts.",
+    "why": "Rounding drift caused double-charge/penny mismatches in incident #7; reverted in #8.",
+    "scope": { "paths": ["shop/pricing.py", "shop/checkout/**"], "symbols": ["apply_discount", "calculate_tax"], "tags": ["payments", "pricing"] },
+    "severity": "block",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "float-arithmetic-on-money" } },
+    "confidence": 0.96,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "revert",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/8",
+        "sha": "9f8e7d2",
+        "excerpt": "Revert PR #7: Floating point rounding error created $0.01 discrepancies in invoice totals",
+        "at": "2026-08-16T10:00:00Z"
+      },
+      {
+        "type": "incident_fix",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/9",
+        "sha": "11ab33c",
+        "excerpt": "Fix: Enforce integer cents across entire pricing pipeline",
+        "at": "2026-08-17T14:30:00Z"
+      }
+    ],
+    "prevented_count": 5,
+    "version": 2,
+    "supersedes": []
+  },
+  {
+    "id": "sc_002",
+    "title": "Payment retry calls require unique idempotency key",
+    "rule": "Every call to the payment gateway must include a deterministic Idempotency-Key header or argument derived from order ID and attempt count.",
+    "why": "Stripe timeout during checkout caused customers to retry and get billed twice without an idempotency key.",
+    "scope": { "paths": ["shop/payments.py", "shop/checkout/service.py"], "symbols": ["charge_card", "refund_transaction"], "tags": ["payments"] },
+    "severity": "block",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "missing-idempotency-key" } },
+    "confidence": 0.94,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "incident_fix",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/11",
+        "sha": "44ee88a",
+        "excerpt": "Incident #10 fix: Pass idempotency key to payment gateway on checkout retry",
+        "at": "2026-08-25T09:15:00Z"
+      }
+    ],
+    "prevented_count": 3,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_003",
+    "title": "Do not swallow bare Exception around payment calls; log and re-raise",
+    "rule": "Catch specific payment errors (GatewayTimeoutError, CardDeclinedError). Never use bare `except Exception:` without re-raising or transitioning order state.",
+    "why": "A bare except masked transaction failures, causing the order to mark fulfilled while card was never charged.",
+    "scope": { "paths": ["shop/payments.py"], "symbols": ["process_payment"], "tags": ["error-handling", "payments"] },
+    "severity": "block",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "bare-except-exception" } },
+    "confidence": 0.91,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "review",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/5#discussion_r101",
+        "sha": "66ff22d",
+        "excerpt": "Please catch GatewayError specifically, bare except leaves DB in indeterminate state",
+        "at": "2026-07-30T16:40:00Z"
+      }
+    ],
+    "prevented_count": 4,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_004",
+    "title": "Database queries inside loops (N+1) are forbidden; use joinload or batching",
+    "rule": "Eagerly load related models with `joinedload` or `selectinload`. Do not query individual foreign records in loop iterations.",
+    "why": "Catalog page triggered 250 individual SQL queries for product reviews, resulting in a 4.2s latency spike.",
+    "scope": { "paths": ["shop/catalog.py", "shop/models/**"], "symbols": ["list_products", "get_cart_items"], "tags": ["database", "performance"] },
+    "severity": "block",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "query-in-loop" } },
+    "confidence": 0.95,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "revert",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/4",
+        "sha": "55bb99f",
+        "excerpt": "Revert: N+1 query loop in product catalog endpoint caused high DB CPU load",
+        "at": "2026-07-22T11:00:00Z"
+      }
+    ],
+    "prevented_count": 6,
+    "version": 2,
+    "supersedes": []
+  },
+  {
+    "id": "sc_005",
+    "title": "All new API endpoints require authentication dependency",
+    "rule": "FastAPI path operations must explicitly declare `Depends(get_current_user)` or `Depends(require_auth)` unless decorated with `@public_endpoint`.",
+    "why": "An unauthenticated internal webhook route accidentally exposed customer address data.",
+    "scope": { "paths": ["shop/api/**", "apps/api/**"], "symbols": ["router"], "tags": ["security", "auth"] },
+    "severity": "block",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "missing-auth-dependency" } },
+    "confidence": 0.98,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "review",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/3#discussion_r88",
+        "sha": "12cc44e",
+        "excerpt": "Every new route must inject get_current_user unless explicitly flagged public",
+        "at": "2026-07-15T08:20:00Z"
+      }
+    ],
+    "prevented_count": 8,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_006",
+    "title": "Never log full credit card details, CVV, or unredacted PII payloads",
+    "rule": "Scrub payload dictionaries before passing to logger. Retain only last 4 card digits and masked email addresses.",
+    "why": "PCI DSS compliance audit flag: raw webhook payloads printed customer CVV and card numbers to Datadog.",
+    "scope": { "paths": ["shop/**", "receipt_api/**"], "symbols": ["logger", "structlog"], "tags": ["compliance", "security"] },
+    "severity": "block",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "logging-pii-fields" } },
+    "confidence": 0.99,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "incident_fix",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/2",
+        "sha": "77dd11a",
+        "excerpt": "Security hotfix: Mask card_number and cvv fields before calling logger.info",
+        "at": "2026-07-10T17:45:00Z"
+      }
+    ],
+    "prevented_count": 7,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_007",
+    "title": "Database migrations must be reversible with downgrade steps",
+    "rule": "Alembic migrations must implement both `upgrade()` and `downgrade()`. Avoid destructive column drops without deprecation phase.",
+    "why": "Failed deployment rollback stalled production because migration had `pass` in `downgrade()`.",
+    "scope": { "paths": ["migrations/**", "alembic/versions/**"], "symbols": ["downgrade"], "tags": ["database", "migrations"] },
+    "severity": "block",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "empty-downgrade-migration" } },
+    "confidence": 0.92,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "review",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/1#discussion_r45",
+        "sha": "33ee77f",
+        "excerpt": "Downgrade is empty! If this deploy fails in prod we cannot roll back cleanly.",
+        "at": "2026-07-02T13:10:00Z"
+      }
+    ],
+    "prevented_count": 2,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_008",
+    "title": "Raw SQL string formatting or concatenation is strictly prohibited",
+    "rule": "Always use SQLAlchemy text(:param) or ORM queries. Never use f-strings or % formatting to assemble SQL statements.",
+    "why": "Identified SQL injection vulnerability in search filter query during internal red team review.",
+    "scope": { "paths": ["shop/db.py", "shop/catalog.py"], "symbols": ["execute", "select"], "tags": ["security", "sql"] },
+    "severity": "block",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "raw-sql-string-concat" } },
+    "confidence": 0.97,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "incident_fix",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/6",
+        "sha": "88aa99c",
+        "excerpt": "Vulnerability fix: Convert search f-string query to bound parameter statement",
+        "at": "2026-08-05T19:00:00Z"
+      }
+    ],
+    "prevented_count": 3,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_009",
+    "title": "Always configure explicit timeouts on external HTTP client calls",
+    "rule": "Pass `timeout=httpx.Timeout(connect=5.0, read=15.0)` to all httpx and requests client invocations.",
+    "why": "Unresponsive external tax rate provider hung worker threads, exhausting connection pools.",
+    "scope": { "paths": ["shop/tax.py", "receipt_api/llm/**", "receipt_api/github/**"], "symbols": ["Client", "AsyncClient"], "tags": ["resilience", "http"] },
+    "severity": "warn",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "missing-http-timeout" } },
+    "confidence": 0.88,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "review",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/10#discussion_r150",
+        "sha": "22dd88e",
+        "excerpt": "Httpx client has no timeout specified, worker will hang indefinitely if remote host freezes",
+        "at": "2026-08-20T10:45:00Z"
+      }
+    ],
+    "prevented_count": 4,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_010",
+    "title": "Multi-tenant cache keys must prefix the tenant or organization ID",
+    "rule": "Format Redis and in-memory cache keys as `tenant:{org_id}:{resource}:{id}`. Never cache global IDs across tenants.",
+    "why": "Cross-tenant cache bleed exposed customer order history to another authenticated account.",
+    "scope": { "paths": ["shop/cache.py", "shop/service/**"], "symbols": ["get_cache", "set_cache"], "tags": ["multi-tenancy", "caching"] },
+    "severity": "block",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "unscoped-tenant-cache-key" } },
+    "confidence": 0.94,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "incident_fix",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/15",
+        "sha": "99ee44a",
+        "excerpt": "Incident: Prefix cache keys with org_id to eliminate cross-tenant data contamination",
+        "at": "2026-09-01T11:25:00Z"
+      }
+    ],
+    "prevented_count": 2,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_011",
+    "title": "Password hashing must use Argon2id or bcrypt with appropriate cost factor",
+    "rule": "Use passlib or argon2-cffi. Never use raw hashlib algorithms (SHA256, MD5) for password verification.",
+    "why": "Static security scan flagged legacy SHA256 helper used in test utility migrating into production route.",
+    "scope": { "paths": ["shop/auth.py", "shop/crypto.py"], "symbols": ["hash_password", "verify_password"], "tags": ["security", "auth"] },
+    "severity": "block",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "weak-hash-algorithm" } },
+    "confidence": 0.96,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "review",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/16#discussion_r201",
+        "sha": "44aa33f",
+        "excerpt": "SHA256 is not acceptable for user passwords; use Argon2id",
+        "at": "2026-09-08T15:00:00Z"
+      }
+    ],
+    "prevented_count": 1,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_012",
+    "title": "Background queue jobs must be idempotent to tolerate worker restart",
+    "rule": "Tasks executed via jobs table or message queue must verify processing state or record completion key before side-effects.",
+    "why": "Worker pod restart during email delivery sent customer 5 order confirmation emails.",
+    "scope": { "paths": ["receipt_api/jobs.py", "shop/tasks.py"], "symbols": ["process_job", "send_confirmation"], "tags": ["background-jobs", "resilience"] },
+    "severity": "warn",
+    "check": { "kind": "review", "spec": { "language": "python", "pattern": "non-idempotent-job-handler" } },
+    "confidence": 0.85,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "review",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/17#discussion_r220",
+        "sha": "11bb22c",
+        "excerpt": "Ensure job checks if email_sent flag is already true before triggering provider",
+        "at": "2026-09-12T14:10:00Z"
+      }
+    ],
+    "prevented_count": 3,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_013",
+    "title": "Sensitive API tokens must not be exposed in client-facing error payloads",
+    "rule": "Sanitize internal exception strings and stack traces before serializing HTTP 500 error responses.",
+    "why": "Database connection string containing credentials leaked in 500 error body on DB timeout.",
+    "scope": { "paths": ["apps/api/**", "shop/api/**"], "symbols": ["exception_handler"], "tags": ["security", "error-handling"] },
+    "severity": "block",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "leak-sensitive-in-error" } },
+    "confidence": 0.93,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "incident_fix",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/18",
+        "sha": "55dd77a",
+        "excerpt": "Hotfix: Catch SQLAlchemyError and return generic error message instead of raw exception string",
+        "at": "2026-09-18T18:30:00Z"
+      }
+    ],
+    "prevented_count": 2,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_014",
+    "title": "Date and timestamp arithmetic must use timezone-aware UTC datetime objects",
+    "rule": "Construct timestamps with `datetime.now(timezone.utc)`. Never use naive `datetime.utcnow()` or compare naive and aware datetimes.",
+    "why": "DST changeover caused coupon expiry check to prematurely reject valid discounts for 1 hour.",
+    "scope": { "paths": ["shop/pricing.py", "shop/models/**", "receipt_api/**"], "symbols": ["datetime"], "tags": ["datetime", "pricing"] },
+    "severity": "warn",
+    "check": { "kind": "static", "spec": { "language": "python", "pattern": "naive-datetime-usage" } },
+    "confidence": 0.89,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "review",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/19#discussion_r290",
+        "sha": "77ee88b",
+        "excerpt": "Use datetime.now(timezone.utc) instead of datetime.utcnow() which is deprecated in Python 3.12",
+        "at": "2026-09-24T09:00:00Z"
+      }
+    ],
+    "prevented_count": 4,
+    "version": 1,
+    "supersedes": []
+  },
+  {
+    "id": "sc_015",
+    "title": "Validate file uploads against magic byte signatures, not file extensions",
+    "rule": "Inspect file header bytes using python-magic or pure byte matching. Never rely solely on client-supplied Content-Type or filename extension.",
+    "why": "Malicious SVG containing embedded script bypassed avatar image upload extension check.",
+    "scope": { "paths": ["shop/uploads.py"], "symbols": ["upload_avatar"], "tags": ["security", "uploads"] },
+    "severity": "warn",
+    "check": { "kind": "review", "spec": { "language": "python", "pattern": "file-upload-magic-bytes" } },
+    "confidence": 0.87,
+    "status": "active",
+    "evidence": [
+      {
+        "type": "review",
+        "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/20#discussion_r310",
+        "sha": "99aa11d",
+        "excerpt": "Check actual PNG/JPEG magic bytes, file extensions can be spoofed by attackers",
+        "at": "2026-10-01T12:00:00Z"
+      }
+    ],
+    "prevented_count": 1,
+    "version": 1,
+    "supersedes": []
+  }
+]

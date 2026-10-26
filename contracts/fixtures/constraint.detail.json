@@ -1,0 +1,52 @@
+{
+  "id": "sc_001",
+  "title": "Money is integer cents, never float",
+  "rule": "Represent and compute all monetary amounts as integer cents; never use float arithmetic for prices, totals or discounts.",
+  "why": "Rounding drift caused double-charge/penny mismatches in incident #7; reverted in #8.",
+  "scope": {
+    "paths": ["shop/pricing.py", "shop/checkout/**"],
+    "symbols": ["apply_discount", "calculate_tax"],
+    "tags": ["payments", "pricing"]
+  },
+  "severity": "block",
+  "check": {
+    "kind": "static",
+    "spec": {
+      "language": "python",
+      "pattern": "float-arithmetic-on-money"
+    }
+  },
+  "confidence": 0.96,
+  "status": "active",
+  "evidence": [
+    {
+      "type": "revert",
+      "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/8",
+      "sha": "9f8e7d2",
+      "excerpt": "Revert PR #7: Floating point rounding error created $0.01 discrepancies in invoice totals",
+      "at": "2026-08-16T10:00:00Z"
+    },
+    {
+      "type": "incident_fix",
+      "url": "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/9",
+      "sha": "11ab33c",
+      "excerpt": "Fix: Enforce integer cents across entire pricing pipeline",
+      "at": "2026-08-17T14:30:00Z"
+    }
+  ],
+  "prevented_count": 5,
+  "version": 2,
+  "supersedes": [],
+  "history": [
+    {
+      "version": 1,
+      "updated_at": "2026-08-16T10:15:00Z",
+      "note": "Extracted from PR #8 revert by Scar Tissue engine"
+    },
+    {
+      "version": 2,
+      "updated_at": "2026-08-17T15:00:00Z",
+      "note": "Upgraded severity to block and added static check AST rule after incident #7 post-mortem"
+    }
+  ]
+}
