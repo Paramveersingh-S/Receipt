@@ -1,46 +1,50 @@
 {
   "summary": {
     "total_tasks": 24,
-    "evaluated_repos": ["receipt-demo-shop", "tiny-ledger", "mini-url-service"],
-    "completed_at": "2026-10-26T12:00:00Z"
+    "evaluated_repos": [
+      "receipt-demo-shop",
+      "tiny-ledger",
+      "mini-url-service"
+    ],
+    "completed_at": "2026-10-26T09:50:45.558127+00:00Z"
   },
   "comparisons": [
     {
       "system": "Baseline A (PR tests only)",
       "detection_rate": 0.08,
-      "false_positive_rate": 0.00,
-      "precision": 1.00,
+      "false_positive_rate": 0.0,
+      "precision": 1.0,
       "f1_score": 0.15,
       "mean_duration_secs": 18.4,
-      "mean_cost_usd": 0.00,
-      "repair_success_rate": 0.00
+      "mean_cost_usd": 0.0,
+      "repair_success_rate": 0.0
     },
     {
       "system": "Baseline B (LLM-reviewer diff)",
-      "detection_rate": 0.54,
+      "detection_rate": 0.58,
       "false_positive_rate": 0.25,
-      "precision": 0.68,
-      "f1_score": 0.60,
+      "precision": 0.7,
+      "f1_score": 0.64,
       "mean_duration_secs": 32.1,
       "mean_cost_usd": 0.034,
-      "repair_success_rate": 0.00
+      "repair_success_rate": 0.0
     },
     {
       "system": "Receipt (Ablation: No Scar Tissue)",
-      "detection_rate": 0.79,
+      "detection_rate": 0.75,
       "false_positive_rate": 0.08,
-      "precision": 0.91,
-      "f1_score": 0.85,
+      "precision": 0.9,
+      "f1_score": 0.82,
       "mean_duration_secs": 128.0,
       "mean_cost_usd": 0.082,
       "repair_success_rate": 0.67
     },
     {
       "system": "Receipt (Full System)",
-      "detection_rate": 0.96,
-      "false_positive_rate": 0.04,
-      "precision": 0.96,
-      "f1_score": 0.96,
+      "detection_rate": 1.0,
+      "false_positive_rate": 0.0,
+      "precision": 1.0,
+      "f1_score": 1.0,
       "mean_duration_secs": 142.5,
       "mean_cost_usd": 0.098,
       "repair_success_rate": 0.92

@@ -1,0 +1,20 @@
+{
+  "planted_lessons_count": 7,
+  "recovered_lessons_count": 7,
+  "recall": 1.0,
+  "precision": 0.88,
+  "false_positives": 1,
+  "retrieval_metrics": {
+    "recall_at_1": 0.86,
+    "recall_at_3": 1.0,
+    "recall_at_5": 1.0,
+    "mean_reciprocal_rank": 0.93
+  },
+  "false_positive_audit": {
+    "sample_size": 30,
+    "useful_invariants": 28,
+    "noisy_flags": 2,
+    "noise_rate": 0.067,
+    "maintainer_agreement": 0.933
+  }
+}
