@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -185,9 +186,17 @@ class VerificationPipeline:
                 if v.check_id == c_pattern or v.check_id.replace("-", "_") in c.id or c.id in v.check_id:
                     matched_violation = v
                     break
-                # Match by title keyword
-                if any(term in v.message.lower() for term in c.title.lower().split()[:2]):
-                    matched_violation = v
+                # Match by significant title keywords (>4 chars, avoiding stop words)
+                STOP_WORDS = {"all", "new", "the", "not", "for", "and", "never", "must", "with", "around"}
+                sig_keywords = [
+                    w for w in c.title.lower().split()
+                    if len(w) > 4 and w not in STOP_WORDS
+                ]
+                for kw in sig_keywords:
+                    if re.search(rf"\b{re.escape(kw)}\b", v.message.lower()):
+                        matched_violation = v
+                        break
+                if matched_violation:
                     break
 
             if matched_violation:

@@ -152,7 +152,12 @@ class ScarASTVisitor(ast.NodeVisitor):
             has_idempotency = any("idempotency" in (k or "").lower() for k in kw_names)
             if not has_idempotency and "idempotency" not in call_src.lower():
                 # Avoid false positives on test methods or helper assertions
-                if not self.filename.startswith("test_") and not (self.current_func or "").startswith("test_"):
+                is_test = (
+                    Path(self.filename).name.startswith("test_")
+                    or "tests" in Path(self.filename).parts
+                    or (self.current_func or "").startswith("test_")
+                )
+                if not is_test:
                     self.violations.append(
                         Violation(
                             check_id="missing-idempotency-key",

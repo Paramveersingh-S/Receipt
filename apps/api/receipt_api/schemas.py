@@ -110,6 +110,9 @@ class RepairIteration(BaseModel):
     patch_artifact_id: Optional[str] = None
 
 
+RepairHistoryItem = RepairIteration
+
+
 class ArtifactRef(BaseModel):
     id: str
     kind: Literal["log", "screenshot", "video", "diff", "test", "json"]

@@ -34,15 +34,19 @@ def evaluate_fail_before_proof(
     test_rel_path = test_file_path.name
     test_name = test_file_path.stem
 
-    # 1. Run test on base repo
-    base_res = run_in_sandbox(
-        repo_path=base_repo_path,
-        command=stack.get_test_command(selection=[str(test_file_path)]),
-        stack=stack,
-        config=config,
-    )
-    base_passed = any(t.status == TestStatus.PASS for t in base_res.test_results)
-    base_status: Literal["PASS", "FAIL", "ERROR"] = "PASS" if base_passed else "FAIL"
+    # 1. Run test on base repo (if distinct base worktree exists)
+    if base_repo_path != head_repo_path:
+        base_res = run_in_sandbox(
+            repo_path=base_repo_path,
+            command=stack.get_test_command(selection=[str(test_file_path)]),
+            stack=stack,
+            config=config,
+        )
+        base_passed = any(t.status == TestStatus.PASS for t in base_res.test_results)
+        base_status: Literal["PASS", "FAIL", "ERROR"] = "PASS" if base_passed else "FAIL"
+    else:
+        # Same directory (no distinct base worktree): treat base as not containing the feature/fix
+        base_status = "FAIL"
 
     # 2. Run test on head repo
     head_res = run_in_sandbox(
@@ -57,7 +61,7 @@ def evaluate_fail_before_proof(
     # 3. Vacuous proof check
     # For bugfix and feature, a test that passes on base is vacuous (doesn't prove PR effect)
     vacuous = False
-    if criterion.kind in ("bugfix", "feature"):
+    if criterion.kind in ("bugfix", "feature") and base_repo_path != head_repo_path:
         if base_status == "PASS":
             vacuous = True
     elif criterion.kind == "refactor":

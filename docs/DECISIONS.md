@@ -153,3 +153,36 @@ Implement:
 - Completes mutation analysis in under 4 seconds for changed PR hunks.
 - Accurately measures test strength (`score_breakdown.test_strength`) and highlights untested logic.
 - Generates incontrovertible visual evidence stored as immutable receipt artifacts.
+
+---
+
+## ADR 009: Closed-Loop Auto-Repair with Failure Bundling and Guardrail Invariants
+
+### Context
+When a PR fails verification (due to failing regression tests, surviving mutants, or institutional constraint violations), human review is expensive. Many agent failures are fixable automatically if provided with rich, structured diagnostic evidence. However, naive LLM repair risks "cheating": modifying tests to make them pass (`@pytest.mark.skip`, `assert True`), weakening assertions, or introducing new regressions.
+
+### Decision
+1. **Failure Bundle Composition (`repair/patcher.py`)**:
+   - Construct a structured diagnostic bundle containing:
+     - Exact failed tests and stdout/stderr tracebacks.
+     - Violated Scar Tissue constraints with institutional evidence and suggested remediation patterns.
+     - Surviving mutants with mutated line numbers and diffs.
+     - Unified diff of the PR under repair.
+2. **Deterministic LLM Patcher (`PatchLLMRepair`)**:
+   - Prompts the LLM to return unified diff patches only.
+   - Restricts patch targets exclusively to production source files (prohibiting modifications to verification tests or test harnesses).
+3. **Strict Patch Guardrails (`check_patch_guardrails`)**:
+   - Reject any patch containing `@pytest.mark.skip`, `skipTest`, `xfail`, or `assert True`.
+   - Reject any patch modifying files outside the allowed target set.
+4. **Repair Loop with Early Convergence & Recovery Curve (`repair/loop.py`)**:
+   - Execute up to `max_iterations = 3`.
+   - Re-run verification pipeline after each candidate patch.
+   - Track score trajectory (`repair_history` with recovery curve).
+   - Terminate early on `VERIFIED` verdict or if candidate patch degrades score.
+5. **External Agent Mode (`repair/external.py`)**:
+   - Formats actionable markdown review comments for external AI agents (e.g., Alan, Claude, Copilot Workspace) when internal auto-patching is disabled or exhausted.
+
+### Consequences
+- Automatically recovers subtly broken PRs (such as float discount rounding) to `VERIFIED` status in a single iteration without human intervention.
+- Hard guardrails prevent gaming of the verification suite.
+- Preserves full audit trail of all repair iterations and patches in the final receipt artifact.

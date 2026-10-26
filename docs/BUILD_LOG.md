@@ -303,3 +303,37 @@ Phase 7 (Mutation Testing on Changed Lines + Browser QA).
 
 ### Next Step
 Phase 8 (Closed-Loop Auto-Repair: Failure bundle assembly, LLM patcher, re-verification loop, recovery curve).
+
+---
+
+## [Phase 8] — Closed-Loop Auto-Repair
+
+### What Was Built
+- **Failure Bundle Assembler (`apps/api/receipt_api/repair/patcher.py`)**:
+  - `FailureBundle`: Structured diagnostic bundle uniting:
+    - Failed test names, stdout, and stderr tracebacks.
+    - Violated Scar Tissue institutional constraints with rule titles, rationale, and recommended patterns.
+    - Surviving mutation mutants with operator types, target lines, and mutant diffs.
+    - Current unified diff of candidate PR.
+- **LLM Patcher & Invariant Guardrails (`apps/api/receipt_api/repair/patcher.py`)**:
+  - `check_patch_guardrails`: Anti-cheating invariant checks rejecting test skips (`@pytest.mark.skip`, `skipTest`, `xfail`), assertion removals (`assert True`), and modifications outside permitted target files.
+  - `PatchLLMRepair`: Prompted LLM patch generator producing strictly targeted unified diff replacements.
+- **Closed-Loop Repair Coordinator (`apps/api/receipt_api/repair/loop.py`)**:
+  - `run_repair_loop`: Coordinates up to 3 repair iterations.
+  - Re-verifies each candidate patch using the complete `VerificationPipeline`.
+  - Computes the recovery curve across iterations (`repair_history`).
+  - Implements early termination on `VERIFIED` verdict or lack of score progression.
+- **External Agent Reviewer (`apps/api/receipt_api/repair/external.py`)**:
+  - `ExternalAgentRepair`: Generates actionable GitHub PR review comments formatted with diff proposals, reproduction commands, and constraint violations for external agents (Alan, Copilot Workspace, Claude Code).
+- **Pipeline Integration**:
+  - Linked repair results into `Receipt` schema with `repair_history` recovery trajectory.
+
+### Verification & Measured Results
+- `pytest tests/test_repair.py`: 3/3 passed in 27.27s.
+  - `test_patch_guardrails`: Successfully caught and rejected test-skipping and assert-weakening diffs.
+  - `test_repair_loop_subtle_bug_recovers_to_verified`: Fully recovered demo subtle float bug (`price_cents * 0.15`) into an integer math implementation, progressing from `NEEDS_REVIEW` to `VERIFIED` in 1 iteration.
+  - `test_external_repair_markdown`: Validated structured markdown diagnostic comment generation.
+- Full suite: `pytest tests/`: **53/53 passed in 102.53s**.
+
+### Next Step
+Phase 9 (GitHub Outputs, FastMCP Server, Living Docs Generator & Learning Loop).
