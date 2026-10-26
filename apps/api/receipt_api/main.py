@@ -108,9 +108,19 @@ async def get_repo(id: str):
 
 
 @app.post("/repos/{id}/ingest", tags=["repos"])
-async def trigger_ingest(id: str):
-    job_id = job_queue.enqueue("ingest_repo", {"repo_id": id})
-    return {"status": "queued", "job_id": job_id, "repo_id": id}
+async def trigger_ingest(id: str, snapshot: Optional[str] = None):
+    from sqlmodel import Session, select
+    from receipt_api.db import get_engine
+    from receipt_api.github.ingest import ingest_repository_events
+    from receipt_api.models import Repo
+
+    with Session(get_engine()) as session:
+        db_repo = session.exec(select(Repo).where(Repo.id == id)).first()
+        full_name = db_repo.full_name if db_repo else "Paramveersingh-S/receipt-demo-shop"
+        snapshot_path = Path(snapshot) if snapshot else None
+        stats = await ingest_repository_events(id, full_name, session, snapshot_path=snapshot_path)
+        job_id = job_queue.enqueue("ingest_repo", {"repo_id": id})
+        return {"status": "completed", "job_id": job_id, "repo_id": id, "stats": stats}
 
 
 @app.get("/repos/{id}/ingest/events", tags=["repos"])
@@ -360,6 +370,18 @@ async def get_artifact(id: str):
 
 @app.post("/webhooks/github", tags=["webhooks"])
 async def github_webhook(request: Request):
-    payload = await request.json()
-    action = payload.get("action")
-    return {"status": "received", "action": action}
+    from sqlmodel import Session
+    from receipt_api.db import get_engine
+    from receipt_api.github.webhooks import verify_github_signature, handle_webhook_event
+
+    body = await request.body()
+    sig = request.headers.get("X-Hub-Signature-256")
+    event_type = request.headers.get("X-GitHub-Event", "pull_request")
+
+    if sig and not verify_github_signature(body, sig):
+        raise HTTPException(status_code=401, detail="Invalid GitHub webhook signature")
+
+    payload = json.loads(body.decode("utf-8")) if body else {}
+    with Session(get_engine()) as session:
+        result = handle_webhook_event(event_type, payload, session)
+        return result

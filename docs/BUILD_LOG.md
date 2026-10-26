@@ -160,7 +160,37 @@ Begin Phase 3 verification core implementation.
 - All 6 hard gate conditions verified via parametrized unit tests.
 
 ### Next Step
-Phase 4 (GitHub Ingestion: Webhooks + historical backfill engine).
+Begin Phase 4 GitHub ingestion implementation.
+
+---
+
+## [Phase 4: GitHub Ingestion (Backfill & Webhooks)] - 2026-10-26
+
+### What Was Built
+- **GitHub Client (`apps/api/receipt_api/github/client.py`)**:
+  - `GitHubClient` using `httpx.AsyncClient` with ETag conditional caching (`If-None-Match`), 304 handling, pagination support (`get_paginated`), and automatic exponential backoff on secondary rate limits.
+- **Repository Ingestion Engine (`apps/api/receipt_api/github/ingest.py`)**:
+  - `ingest_from_snapshot`: Parses offline `snapshot.json` containing PRs, review discussions, comments, revert commits, and incident issues.
+  - Idempotent event persistence in `GHEvent` table (`pr`, `review`, `review_comment`, `revert`, `incident` kinds) with duplicate deduplication.
+  - Emits real-time `ingest.progress` events and updates `Repo.last_ingested_at`.
+  - Live GitHub API backfill fallback when credentials are provided.
+- **Webhook Receiver (`apps/api/receipt_api/github/webhooks.py`)**:
+  - HMAC SHA-256 signature verification (`verify_github_signature`) guarding against unauthorized payloads.
+  - Event dispatcher (`handle_webhook_event`) parsing `pull_request` (opened, synchronize, reopened) payloads, persisting `DBRun` in `pending` state, and emitting `run.enqueued` events.
+- **REST Endpoints (`main.py`)**:
+  - `POST /repos/{id}/ingest`: Ingests history with snapshot override support.
+  - `POST /webhooks/github`: Authenticates HMAC header, dispatches events, and enqueues runs.
+
+### Verification & Measured Results
+- `pytest tests/test_github_ingest.py`: 4/4 tests passed in 3.06s.
+  - Snapshot ingestion: 100% of PRs, reviews, and comments ingested; second run added 0 duplicates (100% idempotent).
+  - HMAC SHA-256 verification: valid signature accepted, forged/missing rejected with 401.
+  - Webhook pull request trigger: `Run` successfully persisted in database with `run.enqueued` event.
+- `make test`: 37/37 tests passed in 31.52s.
+
+### Next Step
+Phase 5 (Scar Tissue: Extract lessons, cluster, confidence score, FTS5 + embeddings hybrid retrieval).
+
 
 
 
