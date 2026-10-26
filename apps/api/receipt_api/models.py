@@ -58,6 +58,9 @@ class Constraint(SQLModel, table=True):
     prevented_count: int = Field(default=0)
 
 
+ConstraintRecord = Constraint
+
+
 class ConstraintEvidence(SQLModel, table=True):
     __tablename__ = "constraint_evidence"
 

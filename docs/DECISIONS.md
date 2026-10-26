@@ -186,3 +186,31 @@ When a PR fails verification (due to failing regression tests, surviving mutants
 - Automatically recovers subtly broken PRs (such as float discount rounding) to `VERIFIED` status in a single iteration without human intervention.
 - Hard guardrails prevent gaming of the verification suite.
 - Preserves full audit trail of all repair iterations and patches in the final receipt artifact.
+
+---
+
+## ADR 010: Developer Ecosystem Integrations (GitHub Outputs, FastMCP, Living Docs & Learning Loop)
+
+### Context
+Verification and institutional memory are useless if isolated from real developer workflows. Autonomous coding agents (Claude Code, Cursor, Codex, Antigravity, Alan) need pre-coding constraint briefings and pre-commit checks directly in their context window. Furthermore, PR reviewers on GitHub require clear, idempotent status reports rather than noisy spam, and repository guidelines (`AGENTS.md`, `docs/`) must stay synchronized with institutional memory without manual curation.
+
+### Decision
+1. **GitHub Status & Idempotent PR Markdown (`github/statuses.py`)**:
+   - Post commit status to `receipt/verify` with deep links to the public receipt slug (`/r/{slug}`).
+   - Update PR markdown in place using an invisible comment anchor (`<!-- receipt-summary-comment -->`), ensuring zero spam on repeated pushes.
+2. **FastMCP Server Protocol (`mcp_server.py`)**:
+   - Provide a zero-dependency JSON-RPC 2.0 stdio engine compatible with all MCP clients.
+   - Expose 7 essential tools (`receipt_briefing`, `receipt_check_diff`, `receipt_verify_pr`, `receipt_get_receipt`, `receipt_feedback`, `receipt_report_outcome`, `scar_search`) and dynamic resource `scar://constraints/{path}`.
+   - Redirect all internal logging to `sys.stderr` to maintain strict JSON-RPC protocol purity on `sys.stdout`.
+3. **Living Documentation & Delimited AGENTS.md Sync (`scar/docs_gen.py`)**:
+   - Generate living documentation: `pitfalls.md` (active invariants catalog), `decisions.md` (historical provenance with incident citations), and `digest.md` (weekly memory health metrics).
+   - Dynamically maintain the `<!-- receipt:begin --> ... <!-- receipt:end -->` block in `AGENTS.md` via `POST /repos/{id}/docs/sync`.
+4. **Autonomous Learning Loop (`scar/learning.py`)**:
+   - Record human and PR decisions (`merged`, `rejected`, `overridden`).
+   - When a flawed PR is rejected or repaired, increment `prevented_count` and reinforce constraint confidence (`+0.05`).
+   - When a human overrides a constraint violation, penalize confidence (`-0.15`) and mark as `decayed` if confidence drops below `0.35`.
+
+### Consequences
+- External AI agents query institutional constraints before touching code, preventing errors before they occur.
+- PRs maintain clean, single-comment verification summaries with live recovery curves.
+- `AGENTS.md` and repository docs remain fresh and mathematically grounded in real incident history.

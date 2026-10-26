@@ -203,6 +203,28 @@ class BriefingResponse(BaseModel):
     preflight_checklist: List[str]
     suggested_tests: List[str]
 
+    def to_markdown(self) -> str:
+        lines = ["# 🛡️ Scar Tissue Pre-Coding Briefing\n"]
+        if self.constraints:
+            lines.append("## Active Institutional Constraints:")
+            for c in self.constraints:
+                sev = c.severity.upper()
+                lines.append(f"- **[{sev}] {c.title}** (`{c.id}`): {c.rule}")
+                if c.evidence:
+                    ev_links = [f"[{e.type} #{e.url.split('/')[-1]}]({e.url})" for e in c.evidence[:2]]
+                    lines.append(f"  *Evidence:* {', '.join(ev_links)}")
+            lines.append("")
+        if self.preflight_checklist:
+            lines.append("## Preflight Checklist:")
+            for item in self.preflight_checklist:
+                lines.append(f"- [ ] {item}")
+            lines.append("")
+        if self.suggested_tests:
+            lines.append("## Suggested Verification Tests:")
+            for t in self.suggested_tests:
+                lines.append(f"- `def {t}(): ...`")
+        return "\n".join(lines)
+
 
 class CheckDiffRequest(BaseModel):
     diff: str

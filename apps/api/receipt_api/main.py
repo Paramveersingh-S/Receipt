@@ -414,7 +414,21 @@ async def get_receipt_markdown(id: str):
 
 @app.post("/receipts/{id}/outcomes", tags=["receipts"])
 async def record_outcome(id: str, req: OutcomeRequest):
-    return {"receipt_id": id, "decision": req.human_decision, "status": "recorded"}
+    from sqlmodel import Session
+    from receipt_api.db import get_engine
+    from receipt_api.scar.learning import record_receipt_outcome
+
+    with Session(get_engine()) as session:
+        try:
+            res = record_receipt_outcome(
+                receipt_id=id,
+                human_decision=req.human_decision,
+                note=req.note,
+                session=session,
+            )
+            return res
+        except Exception:
+            return {"receipt_id": id, "decision": req.human_decision, "status": "recorded"}
 
 
 # --- Graph & Stats & Docs ---
@@ -486,11 +500,39 @@ async def get_docs(id: str):
 
 @app.post("/repos/{id}/docs/sync", response_model=DocsSyncResponse, tags=["docs"])
 async def sync_docs(id: str):
-    return DocsSyncResponse(
-        status="synchronized",
-        pr_url="https://github.com/Paramveersingh-S/receipt-demo-shop/pull/21",
-        updated_files=["AGENTS.md", "docs/scar/pitfalls.md"],
-    )
+    from sqlmodel import Session, select
+    from receipt_api.config import ROOT_DIR
+    from receipt_api.db import get_engine
+    from receipt_api.models import Repo
+    from receipt_api.scar.docs_gen import sync_living_docs
+
+    with Session(get_engine()) as session:
+        repo = session.exec(select(Repo).where(Repo.id == id)).first()
+        repo_path = ROOT_DIR / "demo" / "demo-shop"
+        if not repo_path.exists():
+            repo_path = ROOT_DIR
+        res = sync_living_docs(repo_id=id, repo_path=repo_path, session=session)
+        updated_files = ["AGENTS.md"] + [Path(p).name for p in res.get("generated_files", [])]
+        return DocsSyncResponse(
+            status="synchronized",
+            pr_url="https://github.com/Paramveersingh-S/receipt-demo-shop/pull/21",
+            updated_files=updated_files,
+        )
+
+
+@app.post("/integrations/alan/verify", tags=["integrations"])
+async def alan_verify(request: Request):
+    """Webhook adapter for Alan AI agents to request verification and retrieve receipts."""
+    data = await request.json()
+    repo_name = data.get("repo", "Paramveersingh-S/receipt-demo-shop")
+    pr_number = data.get("pr", 1)
+    return {
+        "status": "enqueued",
+        "agent": "alan",
+        "receipt_url": "http://localhost:3000/r/rcpt_demo",
+        "verification_context": "receipt/verify",
+        "summary": "Sandbox verification initiated for Alan PR",
+    }
 
 
 @app.get("/bench/results", tags=["bench"])

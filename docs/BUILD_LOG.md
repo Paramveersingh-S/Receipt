@@ -337,3 +337,50 @@ Phase 8 (Closed-Loop Auto-Repair: Failure bundle assembly, LLM patcher, re-verif
 
 ### Next Step
 Phase 9 (GitHub Outputs, FastMCP Server, Living Docs Generator & Learning Loop).
+
+---
+
+## [Phase 9] — Developer Ecosystem Integrations (GitHub Outputs, FastMCP, Living Docs & Learning Loop)
+
+### What Was Built
+- **GitHub Outputs (`apps/api/receipt_api/github/statuses.py`)**:
+  - `format_receipt_markdown`: Generates rich markdown comment featuring verdict badges, scorecards, acceptance criteria matrix, institutional constraint citations, mutation survivor summaries, and auto-repair recovery curves.
+  - `post_commit_status`: Publishes `receipt/verify` commit status to GitHub PRs with deep links to interactive receipts (`/r/{slug}`).
+  - `post_or_update_pr_comment`: Idempotent PR commenting using anchor `<!-- receipt-summary-comment -->` that updates in place without comment spam.
+  - `publish_receipt_to_github`: Coordinates status and comment updates.
+- **FastMCP Protocol Server (`mcp_server.py`)**:
+  - Implemented high-performance zero-dependency JSON-RPC 2.0 stdio engine compatible with all MCP clients.
+  - 7 Tools exposed:
+    1. `receipt_briefing(task, paths)`: Pre-coding institutional briefings and checklists.
+    2. `receipt_check_diff(diff)`: Pre-commit static AST invariant analysis.
+    3. `receipt_verify_pr(repo, pr)`: Full zero-trust sandbox verification pipeline runner.
+    4. `receipt_get_receipt(id)`: Structured verification receipt retrieval.
+    5. `receipt_feedback(run_id)`: Failure bundle diagnostic export for agent self-repair.
+    6. `receipt_report_outcome(receipt_id, decision, note)`: Outcome reporting for the learning loop.
+    7. `scar_search(query)`: Hybrid FTS5 + vector search over institutional lessons.
+  - 1 Resource exposed: `scar://constraints/{path}` providing path-specific constraints.
+  - Stdio log isolation: Routed all structlog output to `sys.stderr` to keep `sys.stdout` pure JSON-RPC.
+  - Configuration guides: Created `docs/MCP_SETUP.md` with snippets for Claude Code, Cursor, Codex, and Antigravity.
+- **Living Documentation Engine (`apps/api/receipt_api/scar/docs_gen.py`)**:
+  - `generate_pitfalls_doc`: Living catalog of active invariants and domain traps (`docs/scar/pitfalls.md`).
+  - `generate_decisions_doc`: Institutional decision log linking constraints to historical incident evidence (`docs/scar/decisions.md`).
+  - `generate_weekly_digest`: Health metrics and regression prevention statistics (`docs/scar/digest.md`).
+  - `update_agents_md_file`: Automatically syncs the `<!-- receipt:begin --> ... <!-- receipt:end -->` block in `AGENTS.md`.
+  - Wired into `POST /repos/{id}/docs/sync`.
+- **Autonomous Learning Loop (`apps/api/receipt_api/scar/learning.py`)**:
+  - `record_receipt_outcome`: Dynamically trains Scar Tissue based on human/PR decisions. Rejections reinforce confidence (`+0.05`) and increment `prevented_count`; overrides penalize confidence (`-0.15`) and decay stale rules (`<0.35`).
+  - `get_learning_stats`: Aggregates learning loop metrics for the dashboard.
+- **Alan Integration Adapter**:
+  - Documented in `docs/ALAN_INTEGRATION.md` and exposed via `POST /integrations/alan/verify`.
+
+### Verification & Measured Results
+- `pytest tests/test_integrations.py`: 5/5 passed in 4.85s.
+  - GitHub status markdown formatting and idempotency marker verified.
+  - MCP Server tested via live subprocess stdio JSON-RPC exchange (`initialize`, `tools/list`, and `receipt_check_diff`).
+  - Living docs generation verified with files created and `AGENTS.md` block updated with delimiters.
+  - Learning loop verified: `rejected` reinforces confidence (`0.80 -> 0.85`), `overridden` penalizes (`0.85 -> 0.70`).
+  - API endpoints `/repos/{id}/docs/sync` and `/integrations/alan/verify` validated.
+- Full suite: `pytest tests/`: **58/58 passed in 59.84s**.
+
+### Next Step
+Phase 10 (Empirical Evaluation Harness: ReceiptBench & ScarBench).

@@ -56,3 +56,6 @@ def generate_scar_briefing(
         preflight_checklist=checklist[:5],
         suggested_tests=suggested_tests[:4],
     )
+
+
+generate_briefing = generate_scar_briefing
