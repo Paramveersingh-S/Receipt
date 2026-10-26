@@ -128,3 +128,28 @@ Implement **Fusion: Memory × Verification** in `verify/pipeline.py` and `scar/b
 ### Consequences
 - Eliminates false-positive test approvals on subtly broken agent PRs.
 - Grounded in empirical ablation: `agent/coupons-subtle-bug` drops from `VERIFIED (False Positive, 91)` to `NEEDS_REVIEW (Score 48)` citing PR #7 and PR #8 / #11.
+
+---
+
+## ADR 008: Targeted AST Mutation Testing on Changed Lines & Browser QA Evidence
+
+### Context
+High test pass rates and standard line coverage metrics do not prove that tests actually test what changed. A test suite can achieve 90% statement coverage simply by executing code without asserting against behavioral boundaries. Full-repo mutation testing is prohibitively slow (>30 minutes). Furthermore, backend tests cannot guarantee that server-rendered web UI and cart checkouts display correct prices and invoices.
+
+### Decision
+Implement:
+1. **Targeted AST Mutation Analysis (`verify/mutation/python_ast.py`)**:
+   - Parse unified diff to identify exact modified line numbers.
+   - Restrict mutation exclusively to altered line hunks with operator mutators: comparison flips (`>` to `>=`), arithmetic swaps (`+` to `-`, `/` to `*`), boolean negations (`and` to `or`), constant off-by-one, and round/int replacements.
+   - Early-stop test execution on first failure per mutant.
+   - Compute `mutation_score = killed / total` and report surviving mutants with exact file, line, and diff for automated repair.
+2. **Browser QA Automation (`verify/browserqa.py`)**:
+   - Detect web applications with templates or HTTP route handlers.
+   - Execute multi-step user checkout flow: catalog load, coupon application, invoice total verification, and payment form submission.
+   - Capture PNG screenshot artifacts linked into the verification receipt.
+   - Catch visible invoice rounding discrepancies on subtle bug branches.
+
+### Consequences
+- Completes mutation analysis in under 4 seconds for changed PR hunks.
+- Accurately measures test strength (`score_breakdown.test_strength`) and highlights untested logic.
+- Generates incontrovertible visual evidence stored as immutable receipt artifacts.

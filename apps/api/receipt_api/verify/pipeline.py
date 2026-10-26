@@ -15,8 +15,10 @@ from receipt_api.models import DBReceipt, DBRun, DBRunStep, Repo
 from receipt_api.scar.checks import run_static_checks_on_diff, run_static_checks_on_file
 from receipt_api.scar.store import list_constraints
 from receipt_api.schemas import ConstraintSchema, Receipt
+from receipt_api.verify.browserqa import is_browser_qa_applicable, run_browser_qa
 from receipt_api.verify.failbefore import ProofItem, evaluate_fail_before_proof
 from receipt_api.verify.intent import AcceptanceCriterion, extract_intent
+from receipt_api.verify.mutation.python_ast import execute_mutation_analysis, generate_mutants_for_diff
 from receipt_api.verify.receipt import build_receipt, format_receipt_markdown
 from receipt_api.verify.sandbox import SandboxConfig, run_in_sandbox
 from receipt_api.verify.scoring import calculate_score
@@ -232,7 +234,76 @@ class VerificationPipeline:
         suite_base = {"passed": passed_count, "failed": 0}  # Baseline assumed passing
         self._record_step_finish("suite", suite_head, session)
 
-        # 5. Step: Scoring
+        # 5. Step: Targeted AST Mutation Testing on Changed Lines
+        self._record_step_start("mutation", session)
+        mutants = generate_mutants_for_diff(self.repo_path, diff_text, cap=15)
+
+        def on_mutation_tick(k: int, s: int, tot: int):
+            emit_event(
+                run_id=self.run_id,
+                event_type="run.mutation.tick",
+                payload={"killed": k, "survived": s, "total": tot},
+                session=session,
+            )
+
+        mutation_res = execute_mutation_analysis(
+            repo_path=self.repo_path,
+            mutants=mutants,
+            stack=stack,
+            config=self.config,
+            on_tick_cb=on_mutation_tick,
+        )
+        self._record_step_finish(
+            "mutation",
+            {
+                "score": mutation_res.score,
+                "mutants": mutation_res.mutants,
+                "killed": mutation_res.killed,
+                "survived": mutation_res.survived,
+            },
+            session,
+        )
+
+        # 6. Step: Browser QA (if UI is applicable)
+        self._record_step_start("browser", session)
+        is_subtle = (
+            "subtle" in self.pr_title.lower()
+            or "subtle" in self.pr_body.lower()
+            or failed_constraints_count > 0
+        )
+        artifact_dir = self.repo_path / "artifacts"
+        browser_res = run_browser_qa(
+            repo_path=self.repo_path,
+            artifact_dir=artifact_dir,
+            is_subtle_branch=is_subtle,
+        )
+
+        for check in browser_res.checks:
+            if check.screenshot_artifact_id:
+                emit_event(
+                    run_id=self.run_id,
+                    event_type="run.artifact",
+                    payload={"id": check.screenshot_artifact_id, "kind": "screenshot"},
+                    session=session,
+                )
+
+        browser_score = (
+            round(sum(1 for c in browser_res.checks if c.result == "PASS") / len(browser_res.checks), 2)
+            if browser_res.applicable and browser_res.checks
+            else None
+        )
+        self._record_step_finish(
+            "browser",
+            {
+                "applicable": browser_res.applicable,
+                "checks_passed": sum(1 for c in browser_res.checks if c.result == "PASS")
+                if browser_res.applicable
+                else 0,
+            },
+            session,
+        )
+
+        # 7. Step: Scoring
         self._record_step_start("scoring", session)
         non_vacuous_proofs = [p for p in proof_items if not p.vacuous]
         for p in proof_items:
@@ -250,9 +321,9 @@ class VerificationPipeline:
         score_res = calculate_score(
             behavior=behavior_score,
             constraints=constraints_score,
-            test_strength=1.0,  # AST mutation in Phase 7
+            test_strength=mutation_res.score,
             regression=1.0 if not has_regressions else 0.0,
-            browser=None,
+            browser=browser_score,
             has_regressions=has_regressions,
             has_blocking_violations=has_blocking_violations,
             has_non_vacuous_proofs=len(non_vacuous_proofs) > 0 if proof_items else True,
@@ -264,7 +335,7 @@ class VerificationPipeline:
 
         self._record_step_finish("scoring", {"score": score_res.score, "verdict": score_res.verdict}, session)
 
-        # 6. Finalize Receipt
+        # 8. Finalize Receipt
         proofs_dicts = [p.model_dump() for p in proof_items]
         intent_dicts = [c.model_dump() for c in criteria]
         score_breakdown_dict = {
@@ -281,9 +352,9 @@ class VerificationPipeline:
             intent=intent_dicts,
             proofs=proofs_dicts,
             suite={"base": suite_base, "head": suite_head, "regressions": regressions},
-            mutation={"mutants": 0, "killed": 0, "survived": 0, "timeout": 0, "score": 1.0, "survivors": []},
+            mutation=mutation_res.model_dump(),
             constraints=constraint_results,
-            browser={"applicable": False, "checks": []},
+            browser=browser_res.model_dump(),
             score_breakdown=score_breakdown_dict,
             limits=limits,
             start_time=start_time,

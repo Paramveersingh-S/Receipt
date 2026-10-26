@@ -269,3 +269,37 @@ Phase 6 (Fusion: Memory × Verification — slice 2, briefing generation, PR dif
 
 ### Next Step
 Phase 7 (Mutation Testing on Changed Lines + Browser QA).
+
+---
+
+## [Phase 7] — Targeted AST Mutation Testing on Changed Lines & Browser QA
+
+### What Was Built
+- **Targeted AST Mutator (`apps/api/receipt_api/verify/mutation/python_ast.py`)**:
+  - `parse_diff_changed_lines`: Parses unified diffs to extract exact added and modified line numbers.
+  - `MutationASTTransformer`: Generates targeted mutants for modified line hunks:
+    - Comparison flips (`>` to `>=`, `<` to `<=`, `==` to `!=`).
+    - Arithmetic swaps (`+` to `-`, `-` to `+`, `*` to `//`, `/` to `*`).
+    - Boolean operations (`and` to `or`, `or` to `and`).
+    - Round/Int replacements (`round` to `int`, `int` to `round`).
+    - Integer constant off-by-one and boolean inversions.
+  - `execute_mutation_analysis`: Executes sandbox test runs against each mutant with early-stop on failure, emitting `run.mutation.tick` events.
+  - Generates `MutationResults` with survivors list (file, line, op, diff) wired directly into receipt `test_strength`.
+- **Browser QA Runner (`apps/api/receipt_api/verify/browserqa.py`)**:
+  - `is_browser_qa_applicable`: Detects repositories exposing web UIs and templates.
+  - `run_browser_qa`: Verifies catalog rendering, coupon application, invoice penny precision, and payment form submission.
+  - Captures PNG screenshot artifacts and emits `run.artifact` events.
+  - Flags invoice rounding discrepancies as `FAIL` on subtle bug PRs.
+- **Pipeline Integration (`apps/api/receipt_api/verify/pipeline.py`)**:
+  - Steps `mutation` and `browser` executed as stages 5 and 6 of `VerificationPipeline`.
+  - Scores feed transparently into `test_strength` and `browser` breakdown weights.
+
+### Verification & Measured Results
+- `pytest tests/test_mutation.py tests/test_browserqa.py`: 5/5 passed in 3.96s.
+  - Diff parsing and mutant generation verified on Python code.
+  - Sandbox mutation execution: mutants killed by failing test assertions; score accurately computed.
+  - Browser QA: captures >=3 screenshots; correctly identifies invoice total mismatch on subtle branch.
+- Full suite: `pytest tests/`: **50/50 passed in 80.67s**.
+
+### Next Step
+Phase 8 (Closed-Loop Auto-Repair: Failure bundle assembly, LLM patcher, re-verification loop, recovery curve).
