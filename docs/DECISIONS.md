@@ -65,4 +65,22 @@ Implement a dual-backend sandbox architecture in `verify/sandbox.py`:
 - Zero external dependency required on minimal dev workstations while maintaining strict secret protection.
 - Safe execution path that never exposes host secrets (`GITHUB_TOKEN`, `LLM_API_KEY`) to untrusted code.
 
+---
+
+## ADR 005: Fail-Before / Pass-After Proof Matrix with Vacuous Assertion Filtering
+
+### Context
+Autonomous coding agents frequently generate superficial or tautological tests (e.g., `assert True` or testing code paths that already passed on the base commit) to artificially boost test counts without proving the bugfix or feature actually fixed anything.
+
+### Decision
+Implement the **Fail-Before / Pass-After Proof Matrix** in `verify/failbefore.py`:
+1. Generated candidate tests are evaluated on `base_sha` (must FAIL for bugfix/feature) and on `head_sha` (must PASS).
+2. Any test that passes on base is classified as **vacuous** (`vacuous: true`), excluded from proof counts, and explicitly recorded in the receipt's `limits` section.
+3. Scoring hard gates enforce that bugfixes with zero non-vacuous proofs cannot achieve a `VERIFIED` verdict.
+
+### Consequences
+- Mathematically eliminates rubber-stamp test counts.
+- Produces verifiable, non-vacuous proof evidence recorded in public receipts.
+
+
 

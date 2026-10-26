@@ -127,7 +127,41 @@ Begin Phase 2 sandbox runner implementation.
   ```
 
 ### Next Step
-Phase 3 (Verification core: Intent extraction, test generation, fail-before/pass-after proofs, suite regression, and scoring).
+Begin Phase 3 verification core implementation.
+
+---
+
+## [Phase 3: Verification Core (Slice 1)] - 2026-10-26
+
+### What Was Built
+- **Intent Extraction (`apps/api/receipt_api/verify/intent.py`)**:
+  - LLM structured extraction of discrete acceptance criteria with deterministic fallback parsing.
+  - Classifies change kind (`bugfix`, `feature`, `refactor`) and testability.
+- **Targeted Test Generation (`apps/api/receipt_api/verify/testgen.py`)**:
+  - Stack-aware proof test generator creating isolated tests in throwaway `receipt_tests/` directory.
+  - LLM client with `chat_structured_sync` supporting synchronous pipeline callers.
+- **Fail-Before / Pass-After Proof Engine (`apps/api/receipt_api/verify/failbefore.py`)**:
+  - Evaluates candidate tests against `base_sha` and `head_sha`.
+  - Vacuous test detection: tests passing on base for bugfix/feature are flagged `vacuous: true` and excluded from proofs.
+- **Scoring & Hard Gates (`apps/api/receipt_api/verify/scoring.py`)**:
+  - Transparent line-item score calculation with weighted components (behavior 0.35, constraints 0.25, test_strength 0.20, regression 0.15, browser 0.05).
+  - Hard gates enforcement: regressions cap verdict at `REJECTED`, blocking constraints and bugfixes with zero non-vacuous proofs cap at `NEEDS_REVIEW` (score <= 69).
+- **Receipt Minting & Markdown (`apps/api/receipt_api/verify/receipt.py`)**:
+  - `build_receipt`: Assembles validated Pydantic `Receipt` model matching contract fixtures.
+  - `format_receipt_markdown`: Formats an ASCII verification receipt for GitHub comments and CLI.
+- **Verification Pipeline (`apps/api/receipt_api/verify/pipeline.py`)**:
+  - End-to-end orchestration emitting SSE events (`run.started`, `run.step.started`, `run.step.finished`, `run.proof`, `run.score`, `run.finished`).
+  - Automatically persists receipts and events into SQLite database with full query capabilities in `main.py`.
+
+### Verification & Measured Results
+- `pytest tests/test_verification.py`: 9/9 tests passed in 9.83s.
+- `make test`: 33/33 total tests passed in 27.15s across all subsystems.
+- `make demo-smoke`: End-to-end smoke check passed with full 5-stage verification receipt output.
+- All 6 hard gate conditions verified via parametrized unit tests.
+
+### Next Step
+Phase 4 (GitHub Ingestion: Webhooks + historical backfill engine).
+
 
 
 

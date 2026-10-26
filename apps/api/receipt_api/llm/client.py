@@ -171,6 +171,7 @@ class LLMClient:
         messages: List[Dict[str, str]],
         response_model: Type[T],
         model: Optional[str] = None,
+        temperature: float = 0.2,
         max_repairs: int = 2,
     ) -> T:
         """Call LLM with structured output, automatically repairing schema errors up to max_repairs."""
@@ -232,6 +233,34 @@ class LLMClient:
                 )
 
         raise RuntimeError("Unreachable repair loop termination")
+
+    def chat_structured_sync(
+        self,
+        messages: List[Dict[str, str]],
+        response_model: Type[T],
+        model: Optional[str] = None,
+        temperature: float = 0.2,
+        max_repairs: int = 2,
+    ) -> T:
+        """Synchronously execute chat_structured in a dedicated thread or event loop."""
+        import asyncio
+        import concurrent.futures
+
+        coro = self.chat_structured(
+            messages=messages,
+            response_model=response_model,
+            model=model,
+            temperature=temperature,
+            max_repairs=max_repairs,
+        )
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(coro)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(asyncio.run, coro).result()
 
     async def embed(self, texts: List[str], model: Optional[str] = None) -> List[List[float]]:
         """Fetch vector embeddings for a list of input texts."""

@@ -45,6 +45,11 @@ def init_db() -> None:
         conn.commit()
 
 
+def get_engine():
+    """Return the global SQLAlchemy/SQLModel engine."""
+    return engine
+
+
 def get_session() -> Generator[Session, None, None]:
     with Session(engine) as session:
         yield session

@@ -67,6 +67,36 @@ def record_event(run_id: str, event_type: str, payload: Dict[str, Any]) -> RunEv
         return db_event
 
 
+def emit_event(
+    run_id: str,
+    event_type: str,
+    payload: Dict[str, Any],
+    session: Optional[Session] = None,
+) -> RunEvent:
+    """Record and emit an event to the database with optional session."""
+    if session is not None:
+        now = datetime.now(timezone.utc)
+        statement = (
+            select(RunEvent.seq)
+            .where(RunEvent.run_id == run_id)
+            .order_by(RunEvent.seq.desc())
+            .limit(1)
+        )
+        last_seq = session.exec(statement).first() or 0
+        db_event = RunEvent(
+            run_id=run_id,
+            seq=last_seq + 1,
+            type=event_type,
+            payload_json=json.dumps(payload),
+            at=now,
+        )
+        session.add(db_event)
+        session.commit()
+        session.refresh(db_event)
+        return db_event
+    return record_event(run_id, event_type, payload)
+
+
 async def publish_event(run_id: str, event_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     """Persist event to database and dispatch to all active live subscribers."""
     loop = asyncio.get_event_loop()

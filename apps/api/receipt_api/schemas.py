@@ -155,6 +155,9 @@ class ReceiptSchema(BaseModel):
     created_at: str
 
 
+Receipt = ReceiptSchema
+
+
 # REST Endpoints schemas
 class CreateRepoRequest(BaseModel):
     full_name: str

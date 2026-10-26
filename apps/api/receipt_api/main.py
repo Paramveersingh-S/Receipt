@@ -249,6 +249,18 @@ async def get_run_events(id: str, request: Request, after_seq: int = 0):
 # --- Receipts ---
 @app.get("/receipts/{id}", response_model=ReceiptSchema, tags=["receipts"])
 async def get_receipt(id: str):
+    from sqlmodel import Session, select
+    from receipt_api.db import get_engine
+    from receipt_api.models import DBReceipt
+
+    try:
+        with Session(get_engine()) as session:
+            db_r = session.exec(select(DBReceipt).where(DBReceipt.id == id)).first()
+            if db_r:
+                return json.loads(db_r.receipt_json) if isinstance(db_r.receipt_json, str) else db_r.receipt_json
+    except Exception:
+        pass
+
     if "reject" in id.lower():
         return load_fixture("receipt.rejected.json")
     if "review" in id.lower():
@@ -258,6 +270,18 @@ async def get_receipt(id: str):
 
 @app.get("/r/{slug}", response_model=ReceiptSchema, tags=["receipts"])
 async def get_receipt_by_slug(slug: str):
+    from sqlmodel import Session, select
+    from receipt_api.db import get_engine
+    from receipt_api.models import DBReceipt
+
+    try:
+        with Session(get_engine()) as session:
+            db_r = session.exec(select(DBReceipt).where(DBReceipt.public_slug == slug)).first()
+            if db_r:
+                return json.loads(db_r.receipt_json) if isinstance(db_r.receipt_json, str) else db_r.receipt_json
+    except Exception:
+        pass
+
     if slug == "m4p9q2":
         return load_fixture("receipt.rejected.json")
     if slug == "k8w1v3":
@@ -267,22 +291,22 @@ async def get_receipt_by_slug(slug: str):
 
 @app.get("/receipts/{id}/markdown", response_class=PlainTextResponse, tags=["receipts"])
 async def get_receipt_markdown(id: str):
+    from sqlmodel import Session, select
+    from receipt_api.db import get_engine
+    from receipt_api.models import DBReceipt
+    from receipt_api.verify.receipt import format_receipt_markdown
+
+    try:
+        with Session(get_engine()) as session:
+            db_r = session.exec(select(DBReceipt).where((DBReceipt.id == id) | (DBReceipt.public_slug == id))).first()
+            if db_r:
+                payload = json.loads(db_r.receipt_json) if isinstance(db_r.receipt_json, str) else db_r.receipt_json
+                return format_receipt_markdown(ReceiptSchema(**payload))
+    except Exception:
+        pass
+
     r = load_fixture("receipt.verified.json")
-    md = f"""# Verification Receipt: {r['verdict']} (Score: {r['score']}/100)
-**PR #{r['pr']['number']}**: {r['pr']['title']} by `{r['pr']['author']}`
-
-### Acceptance Criteria Proofs
-| Criterion | Test Name | Base | Head | Status |
-|---|---|---|---|---|
-"""
-    for p in r.get("proofs", []):
-        md += f"| {p['criterion_id']} | `{p['test_name']}` | {p['base']} | {p['head']} | {'VALID' if not p['vacuous'] else 'VACUOUS'} |\n"
-
-    md += f"\n### Mutation Score: {r['mutation']['score'] * 100:.1f}%\n"
-    md += f"- Killed: {r['mutation']['killed']} / {r['mutation']['mutants']}\n"
-    md += f"- Surviving mutants: {r['mutation']['survived']}\n"
-    md += f"\n[View Full Interactive Verification Receipt](http://localhost:3000/r/{r['slug']})\n"
-    return md
+    return format_receipt_markdown(ReceiptSchema(**r))
 
 
 @app.post("/receipts/{id}/outcomes", tags=["receipts"])

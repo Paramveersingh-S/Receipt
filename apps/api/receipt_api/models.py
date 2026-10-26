@@ -53,7 +53,7 @@ class Constraint(SQLModel, table=True):
     status: str = Field(default="active")  # active | proposed | disputed | deprecated
     version: int = Field(default=1)
     supersedes_json: str = Field(default="[]")
-    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     last_confirmed_at: Optional[datetime.datetime] = Field(default=None)
     prevented_count: int = Field(default=0)
 
@@ -98,7 +98,7 @@ class Run(SQLModel, table=True):
     base_sha: str
     head_sha: str
     state: str = Field(default="pending")  # pending | running | completed | failed | cancelled
-    started_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    started_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     finished_at: Optional[datetime.datetime] = None
     iteration: int = Field(default=1)
     parent_run_id: Optional[str] = None
@@ -111,7 +111,7 @@ class RunStep(SQLModel, table=True):
     run_id: str = Field(index=True)
     name: str = Field(index=True)
     state: str = Field(default="pending")  # pending | running | passed | failed | skipped
-    started_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    started_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     finished_at: Optional[datetime.datetime] = None
     summary_json: str = Field(default="{}")
 
@@ -124,7 +124,7 @@ class RunEvent(SQLModel, table=True):
     seq: int = Field(index=True)
     type: str = Field(index=True)
     payload_json: str = Field(default="{}")
-    at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
 
 class Artifact(SQLModel, table=True):
@@ -145,7 +145,7 @@ class ReceiptRecord(SQLModel, table=True):
     verdict: str = Field(index=True)  # VERIFIED | NEEDS_REVIEW | REJECTED
     score: int
     receipt_json: str  # full receipt json matching contract
-    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     public_slug: str = Field(index=True, unique=True)
 
 
@@ -155,7 +155,7 @@ class Outcome(SQLModel, table=True):
     id: str = Field(primary_key=True)
     receipt_id: str = Field(index=True)
     human_decision: str  # merged | rejected | overridden
-    at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     note: Optional[str] = None
 
 
@@ -166,7 +166,7 @@ class DocsPage(SQLModel, table=True):
     repo_id: str = Field(index=True)
     slug: str = Field(index=True)
     markdown: str
-    generated_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    generated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     source_constraint_ids: str = Field(default="[]")
 
 
@@ -180,3 +180,12 @@ class Job(SQLModel, table=True):
     attempts: int = Field(default=0)
     run_after: Optional[datetime.datetime] = None
     locked_by: Optional[str] = None
+
+
+# Aliases for backward and forward compatibility
+DBReceipt = ReceiptRecord
+DBRun = Run
+DBRunStep = RunStep
+DBRunEvent = RunEvent
+DBRepo = Repo
+
