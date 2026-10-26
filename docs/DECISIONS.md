@@ -48,3 +48,21 @@ Structure `demo/seed/` with dual capabilities:
 - Benchmarks and unit tests can execute 100% offline, deterministically, and in milliseconds.
 - Prevents synthetic data hallucination by maintaining exact provenance links between lessons and snapshot events.
 
+---
+
+## ADR 004: Dual Sandbox Architecture with Environment Scrubbing
+
+### Context
+Agent pull requests may contain untrusted, buggy, or malicious code. Executing untrusted tests directly on the host machine poses security risks (secret leakage, filesystem tampering, fork bombs). However, Docker is not always running on developer workstations.
+
+### Decision
+Implement a dual-backend sandbox architecture in `verify/sandbox.py`:
+1. `SubprocessSandbox`: Restricted execution fallback. Applies environment scrubbing (wiping all API tokens, cloud keys, and secrets), wall-clock timeouts, and scoped working directory isolation.
+2. `DockerSandbox`: Containerized execution with `--network none`, memory/CPU caps, and non-root execution. Gracefully falls back to `SubprocessSandbox` with a warning log if Docker is unavailable.
+3. Decouple stack logic via `StackAdapter` (`PythonStackAdapter`, `NodeStackAdapter`) to parse test outputs into normalized `TestResult` objects.
+
+### Consequences
+- Zero external dependency required on minimal dev workstations while maintaining strict secret protection.
+- Safe execution path that never exposes host secrets (`GITHUB_TOKEN`, `LLM_API_KEY`) to untrusted code.
+
+

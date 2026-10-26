@@ -88,6 +88,46 @@ Begin UI implementation and repository presentation upgrade.
 - Git check: `video/` directory strictly excluded by `.gitignore`.
 
 ### Next Step
-Phase 2 (Sandbox runner for safe execution of untrusted PR code with Docker & restricted subprocess backends).
+Begin Phase 2 sandbox runner implementation.
+
+---
+
+## [Phase 2: Sandbox Runner & Process Isolation] - 2026-10-26
+
+### What Was Built
+- **Sandbox Engine (`apps/api/receipt_api/verify/sandbox.py`)**:
+  - `SubprocessSandbox`: Restricted local subprocess execution with strict environment scrubbing (`SAFE_ENV_ALLOWLIST`, stripping `GITHUB_*`, `LLM_*`, `SECRET_*`, etc.), wall-clock timeouts via `subprocess.TimeoutExpired`, process termination, and stdout/stderr capture.
+  - `DockerSandbox`: Containerized runner with `--network none`, memory/CPU caps, and non-root execution; automatic fallback to `SubprocessSandbox` when Docker daemon is unreachable.
+  - CLI runner: `python -m receipt_api.verify.sandbox --repo <path> --run-tests` producing structured JSON results.
+- **Stack Adapters (`apps/api/receipt_api/verify/stacks/`)**:
+  - `base.py`: Normalized `TestResult` dataclass (`name`, `status`, `duration_ms`, `message`, `file`, `line`) and `TestStatus` enum.
+  - `python.py`: `PythonStackAdapter` detecting pytest/pyproject/requirements repositories, executing tests, and parsing pytest verbose output.
+  - `node.py`: `NodeStackAdapter` detecting `package.json`, executing `npm test`, and parsing vitest/jest results.
+  - `detect_stack()`: Auto-detection helper for target repos.
+- **Test Fixtures & Security Test Suite**:
+  - `tests/fixtures/repos/py_calc/`: Tiny Python math package with passing tests.
+  - `tests/fixtures/repos/node_calc/`: Tiny Node package with `node:test` suite.
+  - `tests/test_sandbox.py`: 5 comprehensive tests validating stack detection, test execution, environment secret scrubbing, timeout termination, and CLI JSON output.
+
+### Verification & Measured Results
+- `pytest tests/test_sandbox.py`: 5/5 tests passed in 8.67s.
+- `make test`: 24/24 tests passed in 14.06s.
+- CLI execution verification:
+  ```json
+  {
+    "exit_code": 0,
+    "duration_ms": 1369.09,
+    "timed_out": false,
+    "tests": [
+      { "name": "test_add", "status": "PASS", "file": "test_calc.py" },
+      { "name": "test_subtract", "status": "PASS", "file": "test_calc.py" },
+      { "name": "test_multiply", "status": "PASS", "file": "test_calc.py" }
+    ]
+  }
+  ```
+
+### Next Step
+Phase 3 (Verification core: Intent extraction, test generation, fail-before/pass-after proofs, suite regression, and scoring).
+
 
 
