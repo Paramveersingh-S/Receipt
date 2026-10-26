@@ -30,3 +30,21 @@ Implement `receipt_api/llm/client.py` using standard OpenAI-compatible wire prot
 ### Consequences
 - Allows offline benchmark evaluation and instantaneous replay during demo recordings without burning API credits.
 - Swappable open models without vendor SDK coupling.
+
+---
+
+## ADR 003: Dual Offline/Online Seeded History for Scar Tissue & Benchmarks
+
+### Context
+Scar Tissue requires historical review comments, reverts, and incident resolutions to extract learned constraints. Relying exclusively on live GitHub network calls makes demo runs and benchmarks vulnerable to network latency, secondary rate limits, and network flakiness.
+
+### Decision
+Structure `demo/seed/` with dual capabilities:
+1. `snapshot.json` stores an exact, normalized offline snapshot of PRs, review comments, revert commits, and incident issues.
+2. `seed_history.py` provides cross-validation of 100% of planted lessons against the snapshot, with an optional `--live` flag for seeding a remote GitHub repository.
+3. Held-out benchmark tests (`test_coupons_hidden.py`) test boundary edge cases (fractional half-up cent rounding and unique attempt idempotency keys) that subtle bug PRs evade with naive tests.
+
+### Consequences
+- Benchmarks and unit tests can execute 100% offline, deterministically, and in milliseconds.
+- Prevents synthetic data hallucination by maintaining exact provenance links between lessons and snapshot events.
+

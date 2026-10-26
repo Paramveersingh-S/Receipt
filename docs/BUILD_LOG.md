@@ -29,3 +29,34 @@ Tracks chronological progress across each phase, including problem solved, trade
 ### Next Step
 Hand `contracts/` and `make mock` to Claude for UI design track; begin Phase 1 (Demo target repo `demo/demo-shop` and seeding scripts).
 
+---
+
+## [Phase 1: Demo Target Repo (`demo/demo-shop`) & Seeding Engine] - 2026-10-26
+
+### What Was Built
+- **TipJar Shop (`demo/demo-shop/`)**: Complete FastAPI e-commerce application serving product catalog, shopping cart, and checkout flow with server-rendered Jinja2 HTML templates (`index.html`, `cart.html`, `checkout.html`) for browser QA interaction.
+- **Strict Integer Money**: All models (`models.py`, `pricing.py`) represent money in integer cents with half-up rounding in integer arithmetic.
+- **Resilient Payment Handling**: Mock payment gateway with idempotency key deduplication, specific exception definitions (`CardDeclinedError`, `GatewayTimeoutError`), and PII redaction (`mask_card_number`).
+- **N+1 Avoidance**: Catalog product listing with eager batched relations loading.
+- **Auth Dependency**: Protected administrative endpoints guarded by `require_auth`.
+- **Seeding & Snapshot (`demo/seed/`)**:
+  - `planted_lessons.json`: 7 core planted lessons (idempotency, integer money, no bare except, N+1 query avoidance, auth dependency, PII masking, reversible migrations) referencing authentic PRs/reverts.
+  - `snapshot.json`: Full offline snapshot of 11 merged PRs, review discussions, and incident issue resolution threads.
+  - `seed_history.py`: Idempotent script for offline cross-validation and live GitHub API seeding.
+  - `hidden_tests/test_coupons_hidden.py`: Benchmark held-out test suite validating precision half-up rounding on fractional cent boundaries ($19.99, $29.99) and distinct payment retry idempotency keys.
+- **Agent Branches**:
+  - `agent/coupons-subtle-bug`: Authored by `agent/claude-code`, adds coupon support that passes its own naive unit tests but introduces float arithmetic `int(subtotal * (pct / 100.0))` and static retry idempotency keys (evading naive unit tests, failing hidden tests).
+  - `agent/coupons-correct`: Authored by `agent/claude-code`, correct integer basis point implementation passing both its own unit tests and hidden tests.
+
+### Verification & Measured Results
+- `demo/demo-shop/tests`: 16/16 tests passed in 0.83s.
+- `coverage report`: 83% line coverage across `demo/demo-shop/shop/` (exceeds ≥ 70% threshold).
+- `seed_history.py --validate-only`: 7/7 planted lessons validated with 100% evidence resolution against `snapshot.json`.
+- `test_coupons_hidden.py`:
+  - On subtle implementation: 3/3 tests FAILED as expected (catching float truncation and static idempotency keys).
+  - On correct implementation: 3/3 tests PASSED.
+  - On subtle branch's own naive test: PASSED (demonstrating the subtle bug evasion).
+
+### Next Step
+Phase 2 (Sandbox runner for safe execution of untrusted PR code with Docker & restricted subprocess backends).
+
