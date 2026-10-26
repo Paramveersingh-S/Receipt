@@ -1,6 +1,6 @@
 # Receipt Empirical Evaluation Report (ReceiptBench & ScarBench)
 
-**Date:** 2026-10-26 09:50 UTC &nbsp;|&nbsp; **Tasks:** 24 Stratified PRs &nbsp;|&nbsp; **Ground Truth:** Held-out hidden tests
+**Date:** 2026-10-26 09:59 UTC &nbsp;|&nbsp; **Tasks:** 24 Stratified PRs &nbsp;|&nbsp; **Ground Truth:** Held-out hidden tests
 
 ## Executive Summary
 

@@ -4,11 +4,11 @@
 
 ### **Verification + Institutional Memory for Autonomous Agent PRs**
 
-[![Backend CI](https://img.shields.io/badge/backend%20tests-16%20passed-10b981?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/Paramveersingh-S/Receipt)
+[![Backend CI](https://img.shields.io/badge/backend%20tests-65%20passed-10b981?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/Paramveersingh-S/Receipt)
 [![Frontend UI](https://img.shields.io/badge/frontend-Next.js%2016%20Turbopack-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://github.com/Paramveersingh-S/Receipt)
-[![Line Coverage](https://img.shields.io/badge/coverage-83%25-brightgreen?style=for-the-badge&logo=codecov&logoColor=white)](https://github.com/Paramveersingh-S/Receipt)
+[![Line Coverage](https://img.shields.io/badge/coverage-88%25-brightgreen?style=for-the-badge&logo=codecov&logoColor=white)](https://github.com/Paramveersingh-S/Receipt)
 [![Python 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://github.com/Paramveersingh-S/Receipt)
-[![FastMCP](https://img.shields.io/badge/MCP-FastMCP%20v1.2-8B5CF6?style=for-the-badge&logo=anthropic&logoColor=white)](https://github.com/Paramveersingh-S/Receipt)
+[![FastMCP](https://img.shields.io/badge/MCP-FastMCP%20v1.0%2B-8B5CF6?style=for-the-badge&logo=anthropic&logoColor=white)](https://github.com/Paramveersingh-S/Receipt)
 [![Contracts](https://img.shields.io/badge/contracts-OpenAPI%20%2B%20SSE-blueviolet?style=for-the-badge)](https://github.com/Paramveersingh-S/Receipt)
 [![License](https://img.shields.io/badge/license-Apache--2.0-F59E0B?style=for-the-badge)](https://github.com/Paramveersingh-S/Receipt)
 
@@ -269,8 +269,11 @@ cd ../..
 ### Running Locally
 
 ```bash
-# Run backend test suite (16 tests across REST, SSE, LLM, DB)
+# Run backend test suite (65 tests across REST, SSE, LLM, Sandbox, Mutation, Repair, FastMCP, Benchmarks)
 make test
+
+# Run empirical benchmark evaluation harness (ReceiptBench & ScarBench)
+make bench
 
 # Launch mock API server for UI development (port 8000)
 make mock
@@ -280,6 +283,14 @@ cd apps/web && pnpm dev
 
 # Run end-to-end smoke verification against demo-shop
 make demo-smoke
+```
+
+### FastMCP Server for External Agents
+Receipt connects seamlessly to **Claude Code**, **Cursor**, **Codex**, and **Antigravity**. See full documentation in [docs/MCP_SETUP.md](docs/MCP_SETUP.md).
+
+```bash
+# Inspect and run tools interactively
+npx @modelcontextprotocol/inspector python mcp_server.py
 ```
 
 ---
