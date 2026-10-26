@@ -1,0 +1,65 @@
+[
+  {
+    "id": "lesson_01",
+    "title": "Payment retry calls require unique idempotency key",
+    "rule": "Every call to the payment gateway must include a deterministic Idempotency-Key header or argument derived from order ID and attempt count.",
+    "severity": "block",
+    "evidence_pr_numbers": [7, 8, 11],
+    "evidence_type": "incident_fix",
+    "source_summary": "Incident: double-charge on payment retry -> fix adds idempotency keys; prior PR #7 was reverted in #8 and fixed in #11."
+  },
+  {
+    "id": "lesson_02",
+    "title": "Money is integer cents, never float",
+    "rule": "Represent and compute all monetary amounts as integer cents; never use float arithmetic for prices, totals or discounts.",
+    "severity": "block",
+    "evidence_pr_numbers": [7, 9],
+    "evidence_type": "review_thread",
+    "source_summary": "Review thread on PR #7: Floating point rounding drift caused penny mismatches in checkout invoice; fixed in follow-up PR #9."
+  },
+  {
+    "id": "lesson_03",
+    "title": "Do not swallow bare Exception around payment calls; log and re-raise",
+    "rule": "Catch specific payment errors (GatewayTimeoutError, CardDeclinedError). Never use bare `except Exception:` without re-raising or transitioning order state.",
+    "severity": "block",
+    "evidence_pr_numbers": [5],
+    "evidence_type": "review_thread",
+    "source_summary": "Review thread on PR #5: Catching bare Exception masked gateway failures leaving database in indeterminate state."
+  },
+  {
+    "id": "lesson_04",
+    "title": "Database queries inside loops (N+1) are forbidden; use joinload or batching",
+    "rule": "Eagerly load related models with joinedload or selectinload. Do not query individual foreign records in loop iterations.",
+    "severity": "block",
+    "evidence_pr_numbers": [3, 4],
+    "evidence_type": "revert",
+    "source_summary": "Revert PR #4: N+1 query loop on catalog product reviews introduced in PR #3 caused DB latency spike and was reverted."
+  },
+  {
+    "id": "lesson_05",
+    "title": "All new API endpoints require authentication dependency",
+    "rule": "FastAPI path operations must explicitly declare Depends(require_auth) or Depends(get_current_user) unless marked public.",
+    "severity": "block",
+    "evidence_pr_numbers": [2],
+    "evidence_type": "review_thread",
+    "source_summary": "Review thread on PR #2: Unauthenticated internal endpoint exposed customer address records; maintainer required require_auth dependency."
+  },
+  {
+    "id": "lesson_06",
+    "title": "Never log full credit card details, CVV, or unredacted PII payloads",
+    "rule": "Scrub payload dictionaries before passing to logger. Retain only last 4 card digits and masked email addresses.",
+    "severity": "block",
+    "evidence_pr_numbers": [1],
+    "evidence_type": "review_thread",
+    "source_summary": "Review thread on PR #1: Raw webhook logging dumped card numbers and CVV to logs; PCI compliance hotfix masked card numbers."
+  },
+  {
+    "id": "lesson_07",
+    "title": "Database migrations must be reversible with downgrade steps",
+    "rule": "Alembic migrations must implement both upgrade() and downgrade(). Avoid destructive column drops without deprecation phase.",
+    "severity": "block",
+    "evidence_pr_numbers": [6],
+    "evidence_type": "review_thread",
+    "source_summary": "Review thread on PR #6: Empty downgrade() prevented rolling back deployment when migration failed in staging."
+  }
+]

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Your Shopping Cart</h1>
+
+{% if items %}
+<div class="card" style="margin-bottom: 2rem;">
+  <table style="width: 100%; border-collapse: collapse; text-align: left;" id="cart-table">
+    <thead>
+      <tr style="border-bottom: 1px solid var(--border);">
+        <th style="padding: 0.75rem 0;">Item</th>
+        <th style="padding: 0.75rem 0;">Qty</th>
+        <th style="padding: 0.75rem 0; text-align: right;">Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr style="border-bottom: 1px solid #1e293b40;">
+        <td style="padding: 1rem 0;">{{ item.name }}</td>
+        <td style="padding: 1rem 0;">{{ item.quantity }}</td>
+        <td style="padding: 1rem 0; text-align: right;">{{ item.price_formatted }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+    <div>
+      <span style="font-size: 1.1rem; color: var(--text-muted);">Subtotal:</span>
+      <span style="font-size: 1.4rem; font-weight: bold; margin-left: 0.5rem;" id="cart-subtotal">{{ subtotal_formatted }}</span>
+    </div>
+    <a href="/checkout" class="btn" id="btn-proceed-checkout">Proceed to Checkout &rarr;</a>
+  </div>
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 3rem 1rem;">
+  <p style="color: var(--text-muted); font-size: 1.1rem;">Your cart is currently empty.</p>
+  <a href="/" class="btn" style="margin-top: 1rem;">Explore Catalog</a>
+</div>
+{% endif %}
+{% endblock %}

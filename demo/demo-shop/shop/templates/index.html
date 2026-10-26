@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+  <div>
+    <h1 style="margin: 0 0 0.5rem 0;">Developer Swag & Goods</h1>
+    <p style="color: var(--text-muted); margin: 0;">Verified gear for engineers building persistent agent systems.</p>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;" id="product-grid">
+  {% for product in products %}
+  <div class="card" id="product-card-{{ product.id }}">
+    <h3 style="margin-top: 0;">{{ product.name }}</h3>
+    <p style="color: var(--text-muted); font-size: 0.9rem; min-height: 40px;">{{ product.description }}</p>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+      <span style="font-size: 1.25rem; font-weight: bold;" id="price-{{ product.id }}">{{ product.price_formatted }}</span>
+      <form action="/cart/add" method="POST" style="margin: 0;">
+        <input type="hidden" name="product_id" value="{{ product.id }}">
+        <button type="submit" id="add-to-cart-{{ product.id }}">Add to Cart</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

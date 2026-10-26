@@ -1,0 +1,280 @@
+{
+  "repository": {
+    "name": "receipt-demo-shop",
+    "full_name": "Paramveersingh-S/receipt-demo-shop",
+    "default_branch": "main"
+  },
+  "pull_requests": [
+    {
+      "number": 1,
+      "title": "feat: Add payment webhook listener",
+      "author": "dev-alice",
+      "state": "merged",
+      "merged_at": "2026-07-10T18:00:00Z",
+      "head_sha": "77dd11a",
+      "base_sha": "00aa11b",
+      "reviews": [
+        {
+          "author": "sec-bob",
+          "state": "CHANGES_REQUESTED",
+          "body": "Security audit: Do not log full card_number or raw CVV in webhook logs.",
+          "comments": [
+            {
+              "id": 101,
+              "path": "shop/payments.py",
+              "line": 42,
+              "body": "Never log full credit card details, CVV, or unredacted PII payloads. Please mask card numbers to last 4 digits before calling logger.info.",
+              "created_at": "2026-07-10T16:30:00Z"
+            },
+            {
+              "id": 102,
+              "path": "shop/payments.py",
+              "line": 15,
+              "body": "Nit: please fix typo in docstring 'recieved' -> 'received'.",
+              "created_at": "2026-07-10T16:32:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "feat: Add internal admin order sync endpoint",
+      "author": "dev-charlie",
+      "state": "merged",
+      "merged_at": "2026-07-15T09:00:00Z",
+      "head_sha": "12cc44e",
+      "base_sha": "77dd11a",
+      "reviews": [
+        {
+          "author": "lead-dave",
+          "state": "CHANGES_REQUESTED",
+          "body": "All new API endpoints need authentication dependency.",
+          "comments": [
+            {
+              "id": 201,
+              "path": "shop/api.py",
+              "line": 28,
+              "body": "All new API endpoints require authentication dependency. This route is exposing customer orders without get_current_user or require_auth.",
+              "created_at": "2026-07-15T08:20:00Z"
+            },
+            {
+              "id": 202,
+              "path": "shop/api.py",
+              "line": 5,
+              "body": "Prefer alphabetical imports order.",
+              "created_at": "2026-07-15T08:22:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "feat: Add customer review list to catalog products",
+      "author": "dev-alice",
+      "state": "merged",
+      "merged_at": "2026-07-21T14:00:00Z",
+      "head_sha": "33ee11a",
+      "base_sha": "12cc44e",
+      "reviews": [
+        {
+          "author": "dev-bob",
+          "state": "APPROVED",
+          "body": "Looks good, merging for staging test.",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "revert: Revert PR #3 due to N+1 query regression on catalog listing",
+      "author": "lead-dave",
+      "state": "merged",
+      "merged_at": "2026-07-22T11:00:00Z",
+      "head_sha": "55bb99f",
+      "base_sha": "33ee11a",
+      "revert_pr_number": 3,
+      "body": "Database queries inside loops (N+1) are forbidden; use joinload or batching. PR #3 issued 250 individual queries on catalog load causing production DB spike.",
+      "reviews": []
+    },
+    {
+      "number": 5,
+      "title": "fix: Wrap payment gateway calls in error handling block",
+      "author": "dev-bob",
+      "state": "merged",
+      "merged_at": "2026-07-30T17:00:00Z",
+      "head_sha": "66ff22d",
+      "base_sha": "55bb99f",
+      "reviews": [
+        {
+          "author": "lead-dave",
+          "state": "CHANGES_REQUESTED",
+          "body": "Don't catch bare Exception around payment calls; log and re-raise.",
+          "comments": [
+            {
+              "id": 501,
+              "path": "shop/payments.py",
+              "line": 55,
+              "body": "Do not swallow bare Exception around payment calls; log and re-raise. Masking all exceptions marks the order complete while card was never charged.",
+              "created_at": "2026-07-30T16:40:00Z"
+            },
+            {
+              "id": 502,
+              "path": "shop/payments.py",
+              "line": 62,
+              "body": "Trailing whitespace on this line.",
+              "created_at": "2026-07-30T16:42:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "title": "feat: Add database schema for promo codes",
+      "author": "dev-charlie",
+      "state": "merged",
+      "merged_at": "2026-08-02T13:00:00Z",
+      "head_sha": "88aa99c",
+      "base_sha": "66ff22d",
+      "reviews": [
+        {
+          "author": "lead-dave",
+          "state": "CHANGES_REQUESTED",
+          "body": "Migrations must be reversible with downgrade steps.",
+          "comments": [
+            {
+              "id": 601,
+              "path": "alembic/versions/004_promos.py",
+              "line": 24,
+              "body": "Database migrations must be reversible with downgrade steps. downgrade() cannot just be 'pass', we must be able to roll back deployment cleanly.",
+              "created_at": "2026-08-02T12:15:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "title": "feat: Support percentage discount coupons in checkout",
+      "author": "dev-alice",
+      "state": "merged",
+      "merged_at": "2026-08-15T10:00:00Z",
+      "head_sha": "9a12c44",
+      "base_sha": "88aa99c",
+      "reviews": [
+        {
+          "author": "dev-charlie",
+          "state": "APPROVED",
+          "body": "Works in testing.",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "title": "revert: Revert PR #7 due to floating point rounding errors in invoice totals",
+      "author": "lead-dave",
+      "state": "merged",
+      "merged_at": "2026-08-16T10:00:00Z",
+      "head_sha": "9f8e7d2",
+      "base_sha": "9a12c44",
+      "revert_pr_number": 7,
+      "body": "Money is integer cents, never float. Incident #7 caused penny mismatches ($14.99999 instead of $15.00) leading to invoice reconciliation failures. Reverting PR #7.",
+      "reviews": []
+    },
+    {
+      "number": 9,
+      "title": "fix: Enforce integer cents across entire pricing pipeline",
+      "author": "dev-alice",
+      "state": "merged",
+      "merged_at": "2026-08-17T15:00:00Z",
+      "head_sha": "11ab33c",
+      "base_sha": "9f8e7d2",
+      "reviews": [
+        {
+          "author": "lead-dave",
+          "state": "APPROVED",
+          "body": "Looks great. Integer arithmetic with half-up rounding prevents float drift.",
+          "comments": [
+            {
+              "id": 901,
+              "path": "shop/pricing.py",
+              "line": 34,
+              "body": "Money is integer cents, never float. Calculating tax with integer basis points avoids any binary float representation errors.",
+              "created_at": "2026-08-17T14:45:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "title": "feat: Integrate real-time sales tax lookup service",
+      "author": "dev-bob",
+      "state": "merged",
+      "merged_at": "2026-08-20T11:00:00Z",
+      "head_sha": "22dd88e",
+      "base_sha": "11ab33c",
+      "reviews": [
+        {
+          "author": "lead-dave",
+          "state": "APPROVED",
+          "comments": [
+            {
+              "id": 1001,
+              "path": "shop/tax.py",
+              "line": 18,
+              "body": "Always set connect and read timeouts on external HTTP client calls so workers do not hang if tax provider is unresponsive.",
+              "created_at": "2026-08-20T10:45:00Z"
+            },
+            {
+              "id": 1002,
+              "path": "shop/tax.py",
+              "line": 30,
+              "body": "Nit: could simplify this if statement.",
+              "created_at": "2026-08-20T10:48:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 11,
+      "title": "fix: Add idempotency keys to payment retry logic after double-charge incident #10",
+      "author": "lead-dave",
+      "state": "merged",
+      "merged_at": "2026-08-25T10:00:00Z",
+      "head_sha": "44ee88a",
+      "base_sha": "22dd88e",
+      "body": "Payment retry calls require unique idempotency key. Network timeouts during Stripe checkout retry caused double-capture in Incident #10. Fix generates deterministic idempotency key for every attempt.",
+      "reviews": [
+        {
+          "author": "sec-bob",
+          "state": "APPROVED",
+          "body": "Verified: gateway now dedupes identical retry attempts.",
+          "comments": []
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "number": 7,
+      "title": "Incident #7: Customer invoices show $0.01 discrepancy",
+      "state": "closed",
+      "closed_by_pr": 9,
+      "created_at": "2026-08-16T08:00:00Z",
+      "body": "Floating point drift in discount rounding caused double-charge/penny mismatch."
+    },
+    {
+      "number": 10,
+      "title": "Incident #10: Duplicate payment captured on checkout network retry",
+      "state": "closed",
+      "closed_by_pr": 11,
+      "created_at": "2026-08-24T18:00:00Z",
+      "body": "Customers retrying payment on slow connection were billed multiple times because requests lacked idempotency keys."
+    }
+  ]
+}

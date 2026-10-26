@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Checkout & Payment</h1>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+  <div class="card">
+    <h3 style="margin-top: 0;">Order Summary</h3>
+    <div style="margin-bottom: 1rem;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+        <span style="color: var(--text-muted);">Items ({{ cart.item_count }}):</span>
+        <span>{{ subtotal_formatted }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;" id="row-discount">
+        <span style="color: var(--text-muted);">Discount:</span>
+        <span style="color: var(--accent); font-weight: 500;" id="discount-amount">$0.00</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+        <span style="color: var(--text-muted);">Est. Tax:</span>
+        <span id="tax-amount">{{ tax_formatted }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 0.75rem; margin-top: 0.75rem; font-size: 1.2rem; font-weight: bold;">
+        <span>Total:</span>
+        <span id="checkout-total">{{ total_formatted }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top: 0;">Payment Details</h3>
+    <form action="/checkout/pay" method="POST" id="checkout-form">
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-size: 0.9rem; margin-bottom: 0.3rem;">Email</label>
+        <input type="email" name="email" value="customer@example.com" style="width: 100%; box-sizing: border-box;" required id="input-email">
+      </div>
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-size: 0.9rem; margin-bottom: 0.3rem;">Credit Card Token</label>
+        <input type="text" name="card_token" value="tok_visa_valid" style="width: 100%; box-sizing: border-box;" required id="input-card">
+      </div>
+      <button type="submit" style="width: 100%; padding: 0.8rem; font-size: 1rem; margin-top: 1rem;" id="btn-pay-now">
+        Pay {{ total_formatted }}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
