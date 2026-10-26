@@ -58,5 +58,36 @@ Hand `contracts/` and `make mock` to Claude for UI design track; begin Phase 1 (
   - On subtle branch's own naive test: PASSED (demonstrating the subtle bug evasion).
 
 ### Next Step
+Begin UI implementation and repository presentation upgrade.
+
+---
+
+## [Frontend Track: macOS-Grade Web Interface (`apps/web`) & Repository Presentation] - 2026-10-26
+
+### What Was Built
+- **macOS-Grade Web Application (`apps/web`)**:
+  - Bootstrapped Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + Framer Motion + canvas-confetti.
+  - **`MacTitlebar`**: Authentically styled titlebar with interactive red/yellow/green traffic lights, active repo breadcrumbs (`Paramveersingh-S/receipt-demo-shop`), PR selector (`#12` Verified vs `#13` Rejected), live SSE connection indicator, and `⌘K` command palette trigger.
+  - **`MacDock`**: Floating frosted glass dock at bottom with spring magnification and active indicators for 5 views (`receipt`, `pipeline`, `scar`, `repair`, `benchmarks`).
+  - **`ReceiptCard`**: Physical skeuomorphic receipt card featuring perforated sawtooth edges (`clip-path`), thermal monospace font, rubber stamp verdict badge (`[VERIFIED]` / `[REJECTED]`), acceptance criteria fail-before/pass-after matrix, regression check, AST mutation testing score with survivor diffs, Scar Tissue constraints citations, SVG generated barcode, and confetti tearing animation on copy.
+  - **`LivePipelineView`**: Real-time 7-stage sandbox execution timeline with animated progress rings, simulated live replay runner, and filterable SSE event terminal stream (`/runs/{id}/events`).
+  - **`ScarTissueView`**: Interactive repository knowledge graph rendered in SVG connecting constraints, scoped files, historical PRs, reverts, and incidents; filterable constraint cards; and FastMCP agent briefing simulator preview.
+  - **`RepairLoopView`**: Self-healing auto-repair loop view showing iteration recovery curve (+40 pts recovered), structured diagnostic prompts, and side-by-side colorized code diffs in `shop/pricing.py`.
+  - **`BenchmarkView`**: Empirical evaluation dashboard comparing Baseline A, Baseline B, Ablated Receipt, and Full Receipt on ReceiptBench (96% detection rate) and ScarBench (100% recall on 7 planted lessons).
+  - **`CommandPalette`**: `⌘K` modal dialog with full keyboard navigation (arrows, Enter, Esc) to switch tabs, change PRs, tear & copy receipts, and inspect invariants.
+- **Repository Presentation Upgrade (`README.md`)**:
+  - High-visibility shields.io badges (Tests, Coverage, Next.js 16, FastMCP, Python 3.12, Contracts, License).
+  - 9-step verification lifecycle breakdown from institutional memory mining to digital evidence receipt minting.
+  - Comprehensive Mermaid architecture diagram with detailed subgraphs and numbered workflows.
+  - Skeuomorphic ASCII receipt preview, benchmark comparison tables, security sandbox model, and local setup guide.
+
+### Verification & Measured Results
+- `pnpm --filter web build`: Compiled and optimized in 2.0s with Turbopack, finished TypeScript in 5.1s, generated static pages 4/4 with 0 errors.
+- `make test`: 16/16 backend tests passed.
+- `pytest demo/demo-shop/tests`: 16/16 demo shop tests passed (83% coverage).
+- Git check: `video/` directory strictly excluded by `.gitignore`.
+
+### Next Step
 Phase 2 (Sandbox runner for safe execution of untrusted PR code with Docker & restricted subprocess backends).
+
 

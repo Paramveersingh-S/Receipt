@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: #090a0f;
+    --foreground: #f3f4f6;
+    --card: #11131a;
+    --card-foreground: #f3f4f6;
+    --border: #1f2430;
+    --accent: #10b981;
+    --accent-glow: rgba(16, 185, 129, 0.15);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Scrollbar for macOS aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  background: rgba(18, 21, 31, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.5);
+}
+
+.glass-dock {
+  background: rgba(13, 16, 23, 0.82);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.glass-card {
+  background: rgba(23, 27, 40, 0.55);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Skeuomorphic Paper Receipt Styling */
+.receipt-paper {
+  background: #fbfbf9;
+  color: #171717;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.1);
+  position: relative;
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Sawtooth Perforated Edge on Top and Bottom */
+.receipt-sawtooth-top {
+  position: relative;
+}
+.receipt-sawtooth-top::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: radial-gradient(circle, transparent, transparent 50%, #fbfbf9 50%, #fbfbf9 100%);
+  background-size: 16px 20px;
+  background-position: 0 -10px;
+}
+
+.receipt-sawtooth-bottom {
+  position: relative;
+}
+.receipt-sawtooth-bottom::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: radial-gradient(circle, transparent, transparent 50%, #fbfbf9 50%, #fbfbf9 100%);
+  background-size: 16px 20px;
+  background-position: 0 0;
+}
+
+/* Dark mode receipt alternative */
+.receipt-dark {
+  background: #11141b;
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(16, 185, 129, 0.05);
+}
+
+/* Radial background glow */
+.bg-radial-glow {
+  background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12), transparent 45%),
+              radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08), transparent 35%),
+              radial-gradient(circle at 90% 80%, rgba(147, 51, 234, 0.08), transparent 40%);
+}
+
+/* Subtle dot grid pattern */
+.bg-grid-pattern {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Barcode simulation lines */
+.barcode-line {
+  display: inline-block;
+  height: 48px;
+  background-color: currentColor;
+}
