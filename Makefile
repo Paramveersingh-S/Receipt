@@ -28,3 +28,6 @@ demo:
 
 demo-smoke:
 	$(PYTHON) -m scripts.demo_smoke
+
+scar-eval-quick:
+	$(PYTHON) -m scripts.scar_eval_quick

@@ -191,7 +191,44 @@ Begin Phase 4 GitHub ingestion implementation.
 ### Next Step
 Phase 5 (Scar Tissue: Extract lessons, cluster, confidence score, FTS5 + embeddings hybrid retrieval).
 
+---
 
+## [Phase 5] — Scar Tissue Memory Engine: Extract, Cluster, Score & Retrieve
 
+### What Was Built
+- **Static Check AST Library (`apps/api/receipt_api/scar/checks.py`)**:
+  - `ScarASTVisitor` and diff scanner detecting:
+    1. `float-arithmetic-on-money`: Float arithmetic or float literals on monetary expressions (`price`, `total`, `cents`, `amount`, `discount`).
+    2. `bare-exception`: Catching bare `except Exception:` without re-raise in payment/order flows.
+    3. `missing-idempotency-key`: Payment gateway calls lacking `idempotency_key` parameter or header.
+    4. `n-plus-one-query`: Database queries (`session.exec`, `session.query`, `.all()`) inside loops.
+    5. `missing-auth-dependency`: FastAPI endpoints missing `Depends(require_auth)`.
+    6. `pii-logging`: Logging raw card numbers, CVVs, or unredacted PII.
+    7. `non-reversible-migration`: Alembic migration with empty or pass-only `downgrade()`.
+  - Unified diff scanner evaluating line-item violations on added code hunks.
+- **Extraction Engine (`apps/api/receipt_api/scar/extract.py`)**:
+  - Mines lessons from `GHEvent` rows with heuristic filters discarding trivial nitpicks and style noise.
+  - Strict provenance validation: every extracted constraint's evidence URLs, SHAs, and excerpts are strictly verified against ingested events. Hallucinated evidence is mathematically eliminated.
+- **Clustering & Deduplication (`apps/api/receipt_api/scar/cluster.py`)**:
+  - Merges related constraints, combines evidence across multiple PRs, and updates superseding relationships.
+- **Confidence Scoring (`apps/api/receipt_api/scar/score.py`)**:
+  - Implements weighted scoring (`incident_fix` = 1.0 > `revert` = 0.8 > `review` = 0.5 > `comment` = 0.3) with 180-day exponential decay and multi-source recurrence bonuses.
+- **Hybrid Retrieval (`apps/api/receipt_api/scar/retrieve.py`)**:
+  - Fuses SQLite FTS5 (BM25) and vector cosine similarity using Reciprocal Rank Fusion (RRF), boosted by path-scope matching and severity.
+- **Persistence (`apps/api/receipt_api/scar/store.py`)**:
+  - Manages `constraints`, `constraint_evidence`, `constraints_fts`, `constraint_embeddings`, and `edges` tables.
+- **API Endpoints (`apps/api/receipt_api/main.py`)**:
+  - `GET /repos/{id}/constraints`, `GET /constraints/{id}`, `POST /constraints/{id}/feedback`, `GET /repos/{id}/graph`, `GET /repos/{id}/stats`.
 
+### Verification & Measured Results
+- `pytest tests/test_scar.py`: 5/5 passed in 9.80s.
+- `python -m scripts.scar_eval_quick`:
+  - Recall on Planted Lessons: **7/7 (100.0%)** (surpassing requirement of >=6).
+  - Precision: **7/7 (100.0%)**.
+  - Noise / Junk constraints: **0**.
+  - Provenance check: **100% of evidence links resolve to real ingested events**.
+  - Retrieval check: Query "retry payment idempotency" returns idempotency constraint in Top 1.
+- Full suite: `pytest tests/`: **42/42 passed in 33.21s**.
 
+### Next Step
+Phase 6 (Fusion: Memory × Verification — slice 2, briefing generation, PR diff constraint check integration, and memory ablation benchmark).

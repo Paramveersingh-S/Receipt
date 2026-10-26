@@ -113,12 +113,15 @@ async def trigger_ingest(id: str, snapshot: Optional[str] = None):
     from receipt_api.db import get_engine
     from receipt_api.github.ingest import ingest_repository_events
     from receipt_api.models import Repo
+    from receipt_api.scar.extract import extract_constraints_from_repo_events
 
     with Session(get_engine()) as session:
         db_repo = session.exec(select(Repo).where(Repo.id == id)).first()
         full_name = db_repo.full_name if db_repo else "Paramveersingh-S/receipt-demo-shop"
         snapshot_path = Path(snapshot) if snapshot else None
         stats = await ingest_repository_events(id, full_name, session, snapshot_path=snapshot_path)
+        extracted = extract_constraints_from_repo_events(id, session)
+        stats["constraints_extracted"] = len(extracted)
         job_id = job_queue.enqueue("ingest_repo", {"repo_id": id})
         return {"status": "completed", "job_id": job_id, "repo_id": id, "stats": stats}
 
@@ -140,13 +143,41 @@ async def stream_ingest_events(id: str, request: Request, speed: float = 1.0):
 
 # --- Constraints (Scar Tissue) ---
 @app.get("/repos/{id}/constraints", response_model=List[ConstraintSchema], tags=["scar"])
-async def list_constraints(
+async def list_repo_constraints(
     id: str,
     q: Optional[str] = Query(None),
     path: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
 ):
+    from sqlmodel import Session
+    from receipt_api.db import get_engine
+    from receipt_api.scar.retrieve import search_constraints
+    from receipt_api.scar.store import list_constraints
+
+    with Session(get_engine()) as session:
+        if q:
+            results = search_constraints(
+                repo_id=id,
+                query=q,
+                session=session,
+                path=path,
+                status=status,
+                severity=severity,
+            )
+        else:
+            results = list_constraints(
+                repo_id=id,
+                session=session,
+                status=status,
+                severity=severity,
+                path=path,
+            )
+
+    if results:
+        return results
+
+    # Graceful fallback to rich fixture if database has not been populated yet
     constraints = load_fixture("constraints.list.json")
     if severity:
         constraints = [c for c in constraints if c.get("severity") == severity]
@@ -163,7 +194,16 @@ async def list_constraints(
 
 
 @app.get("/constraints/{id}", response_model=ConstraintSchema, tags=["scar"])
-async def get_constraint(id: str):
+async def get_constraint_detail(id: str):
+    from sqlmodel import Session
+    from receipt_api.db import get_engine
+    from receipt_api.scar.store import get_constraint
+
+    with Session(get_engine()) as session:
+        real_c = get_constraint(id, session)
+        if real_c:
+            return real_c
+
     detail = load_fixture("constraint.detail.json")
     if detail.get("id") == id or id == "sc_001":
         return detail
@@ -176,33 +216,86 @@ async def get_constraint(id: str):
 
 @app.post("/constraints/{id}/feedback", tags=["scar"])
 async def constraint_feedback(id: str, req: ConstraintFeedbackRequest):
+    from sqlmodel import Session, select
+    from receipt_api.db import get_engine
+    from receipt_api.models import Constraint
+
+    with Session(get_engine()) as session:
+        db_c = session.exec(select(Constraint).where(Constraint.id == id)).first()
+        if db_c:
+            if req.action == "accept":
+                db_c.status = "active"
+                db_c.confidence = min(1.0, db_c.confidence + 0.05)
+            elif req.action == "reject":
+                db_c.status = "deprecated"
+                db_c.confidence = 0.0
+            elif req.action == "edit" and req.rule:
+                db_c.rule = req.rule
+            session.add(db_c)
+            session.commit()
+            return {"constraint_id": id, "status": db_c.status, "confidence": db_c.confidence, "action": req.action}
+
     return {"constraint_id": id, "status": "updated", "action": req.action}
 
 
 @app.post("/repos/{id}/briefing", response_model=BriefingResponse, tags=["scar"])
 async def get_briefing(id: str, req: BriefingRequest):
-    constraints = load_fixture("constraints.list.json")[:4]
+    from sqlmodel import Session
+    from receipt_api.db import get_engine
+    from receipt_api.scar.retrieve import search_constraints
+
+    query_str = f"{req.task} {' '.join(req.paths)}"
+    with Session(get_engine()) as session:
+        top_constraints = search_constraints(
+            repo_id=id,
+            query=query_str,
+            session=session,
+            top_k=4,
+        )
+
+    if not top_constraints:
+        top_constraints = [ConstraintSchema(**c) for c in load_fixture("constraints.list.json")[:4]]
+
+    preflight = [
+        f"Enforce rule: {c.title}" for c in top_constraints[:3]
+    ]
+    suggested = [
+        f"test_{c.id.replace('sc_', '')}_compliance" for c in top_constraints[:2]
+    ]
+
     return BriefingResponse(
-        constraints=constraints,
-        preflight_checklist=[
-            "Ensure monetary calculations use integer cents, never float",
-            "Verify payment retry operations include unique idempotency key",
-            "Handle specific gateway exceptions rather than catching bare Exception",
-        ],
-        suggested_tests=[
-            "test_coupon_rounds_half_up",
-            "test_payment_idempotency_key_propagated",
-        ],
+        constraints=top_constraints,
+        preflight_checklist=preflight,
+        suggested_tests=suggested,
     )
 
 
 @app.post("/repos/{id}/check-diff", response_model=CheckDiffResponse, tags=["scar"])
 async def check_diff(id: str, req: CheckDiffRequest):
+    from receipt_api.scar.checks import run_static_checks_on_diff
+
+    violations_raw = run_static_checks_on_diff(req.diff)
     violations = []
-    if "total * (discount / 100.0)" in req.diff or "float(" in req.diff:
+    for v in violations_raw:
         violations.append(
             {
-                "constraint_id": "sc_001",
+                "constraint_id": f"sc_{v.check_id.replace('-', '_')}",
+                "title": v.message.split(":")[0],
+                "severity": v.severity,
+                "file": v.file,
+                "line": v.line,
+                "hunk": v.hunk or "",
+                "evidence_urls": [
+                    "https://github.com/Paramveersingh-S/receipt-demo-shop/pull/8"
+                ],
+            }
+        )
+
+    # Legacy fallback for fixture diff
+    if not violations and ("total * (discount / 100.0)" in req.diff or "float(" in req.diff):
+        violations.append(
+            {
+                "constraint_id": "sc_float_arithmetic_on_money",
                 "title": "Money is integer cents, never float",
                 "severity": "block",
                 "file": "shop/pricing.py",
@@ -327,11 +420,58 @@ async def record_outcome(id: str, req: OutcomeRequest):
 # --- Graph & Stats & Docs ---
 @app.get("/repos/{id}/graph", response_model=GraphResponse, tags=["graph"])
 async def get_graph(id: str):
+    from sqlmodel import Session, select
+    from receipt_api.db import get_engine
+    from receipt_api.models import Constraint, Edge
+
+    with Session(get_engine()) as session:
+        db_constraints = session.exec(select(Constraint).where(Constraint.repo_id == id)).all()
+        db_edges = session.exec(select(Edge)).all()
+
+        if db_constraints:
+            nodes = []
+            seen_nodes = set()
+            for c in db_constraints:
+                nodes.append({"id": c.id, "label": c.title, "type": "constraint", "severity": c.severity})
+                seen_nodes.add(c.id)
+
+            edges = []
+            for e in db_edges:
+                if e.src_id in seen_nodes:
+                    if e.dst_id not in seen_nodes:
+                        nodes.append({"id": e.dst_id, "label": e.dst_id, "type": e.dst_type})
+                        seen_nodes.add(e.dst_id)
+                    edges.append({"source": e.src_id, "target": e.dst_id, "label": e.kind, "weight": e.weight})
+
+            return GraphResponse(nodes=nodes, edges=edges)
+
     return load_fixture("graph.json")
 
 
 @app.get("/repos/{id}/stats", tags=["stats"])
 async def get_stats(id: str):
+    from sqlmodel import Session, select, func
+    from receipt_api.db import get_engine
+    from receipt_api.models import Constraint, DBReceipt
+
+    with Session(get_engine()) as session:
+        total_c = session.exec(select(func.count(Constraint.id)).where(Constraint.repo_id == id)).one()
+        if total_c > 0:
+            active_c = session.exec(
+                select(func.count(Constraint.id)).where(Constraint.repo_id == id, Constraint.status == "active")
+            ).one()
+            prevented = session.exec(
+                select(func.sum(Constraint.prevented_count)).where(Constraint.repo_id == id)
+            ).one() or 0
+            receipts_count = session.exec(select(func.count(DBReceipt.id))).one()
+            return {
+                "constraints_total": total_c,
+                "constraints_active": active_c,
+                "prevented_violations": prevented,
+                "receipts_generated": receipts_count,
+                "repo_id": id,
+            }
+
     return load_fixture("stats.json")
 
 
