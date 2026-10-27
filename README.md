@@ -29,7 +29,7 @@
 
 ## 💡 Executive Summary
 
-Autonomous coding agents (Claude Code, Cursor, Codex, Devin) write code at superhuman speed, but code review is breaking down:
+Autonomous coding agents (**Alan AI**, Claude Code, Cursor, Codex, Devin) write code at superhuman speed, but code review is breaking down:
 
 1. **Rubber-stamping crisis**: Human engineers become bottlenecks reading hundreds of agent diff lines daily.
 2. **Superficial "happy-path" tests**: Agents write tests designed to pass their own buggy code, yielding a false sense of security.
@@ -48,7 +48,7 @@ Autonomous coding agents (Claude Code, Cursor, Codex, Devin) write code at super
 flowchart TD
   subgraph GITHUB ["External Version Control & Developer Agents"]
     REPO["GitHub Repository<br/>PRs • Review Comments • Reverts • Incident Hotfixes"]
-    AGENTS["Coding Agents<br/>Claude Code • Cursor • Codex • Devin"]
+    AGENTS["Autonomous Coding Agents<br/>Alan AI • Claude Code • Cursor • Codex • Devin"]
   end
 
   subgraph MEMORY ["Subsystem 1: Scar Tissue (Institutional Memory)"]
@@ -402,9 +402,9 @@ pytest tests -v
 
 ---
 
-### Step 7: Connect External Coding Agents via FastMCP
+### Step 7: Connect External Coding Agents via FastMCP & Alan AI
 
-Receipt exposes institutional memory and verification tools to **Claude Code**, **Cursor**, **Codex**, and **Devin**:
+Receipt exposes institutional memory and verification tools to **Alan AI**, **Claude Code**, **Cursor**, **Codex**, and **Devin**:
 
 ```bash
 # Inspect and run FastMCP tools interactively
@@ -418,6 +418,13 @@ npx @modelcontextprotocol/inspector python mcp_server.py
 - `receipt_get_receipt(receipt_id)`: Fetches digital evidence receipt.
 - `scar_search(query, repo)`: Hybrid BM25 + cosine vector search over institutional memory.
 - `scar://constraints/{path}`: FastMCP URI resource providing constraints scoped to a specific file.
+
+#### 🤖 Alan AI Agent Integration
+Receipt integrates natively with Alan AI workflows (see [docs/ALAN_INTEGRATION.md](docs/ALAN_INTEGRATION.md)):
+- **Pre-flight Planning**: Alan queries `receipt_briefing` before editing code.
+- **Pre-commit Guardrails**: Alan validates local diffs against Scar Tissue invariants via `receipt_check_diff`.
+- **Zero-Trust Webhook**: Alan triggers isolated sandbox verification via `POST /integrations/alan/verify`.
+- **Closed-Loop Self-Repair**: If verification fails, Alan consumes structured `receipt_feedback` bundles to autonomously repair PRs.
 
 ---
 
